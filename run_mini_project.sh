@@ -1,6 +1,6 @@
 #!/bin/bash
 
-current_path=/home/hema/mini_project_rfs/
+current_path=/home/hema/Custom_Packet_Steering/
 remote_client_addr=hema@115.145.178.17
 server_ip=10.0.0.3
 

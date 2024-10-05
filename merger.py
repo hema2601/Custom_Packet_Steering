@@ -5,7 +5,8 @@ import sys
 
 reps = int(sys.argv[1])
 
-bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS"]
+bases = ["RSS", "RPS", "RFS"]
+#bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "RSS+Custom"]
 directory = []
 
 exp = 1
