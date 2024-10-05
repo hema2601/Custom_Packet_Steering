@@ -8,12 +8,13 @@ exp_name=${1:-exp}
 rss=${2:-1}
 rps=${3:-0}
 rfs=${4:-0}
-conns=${5:-6}
-intf=${6:-ens4np0}
-num_queue=${7:-8}
-core_start=${8:-0}
-core_num=${9:-8}
-time=${10:-10} 
+custom=${5:-0}
+conns=${6:-6}
+intf=${7:-ens4np0}
+num_queue=${8:-8}
+core_start=${9:-0}
+core_num=${10:-8}
+time=${11:-10} 
 
 IPERF_BIN=iperf3
 
@@ -64,6 +65,22 @@ else
 
 fi
 
+if [[ "$custom" == "1" ]]
+then
+	#enable rfs
+	echo "Enable Custom (based on RFS)"
+	make -C $current_path/module
+	insmod $current_path/module/pkt_steer_module.ko
+	$current_path/scripts/enable_rfs.sh $intf
+else
+	echo "Disable Custom"
+	#rmmod pkt_steer_module
+	if [[ "$rfs" == "0" ]]
+	then
+		$current_path/scripts/disable_rfs.sh $intf
+	fi
+fi
+
 
 	
 # Set Mappings
@@ -88,4 +105,11 @@ mv $current_path/iperf.json $current_path/data/$exp_name/
 
 # Apply File Transformation
 python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET
+
+if [[ "$custom" == "1" ]]
+then
+python3 file_formatter.py $exp_name PKT_STEER
+rmmod pkt_steer_module
+fi 
+
 

@@ -10,9 +10,9 @@ class Filetype(Enum):
     IRQ         = 3
     IPERF       = 4
     SOFTNET     = 5
+    PKT_STEER   = 6
 
-
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET'])
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER'])
 
 
 class JsonGenerator:
@@ -214,14 +214,12 @@ class SOFTNETGen(JsonGenerator):
 
             # Read Queue Number
             curr_cpu = int(parts[-1],16)
-            print(curr_cpu)
 
             # Check if object exists
             elem = next((item for item in self.json_dict if item["CPU"] == curr_cpu), None)
 
             # Write to object
             if elem is not None:
-                elem["After"] = int(parts[1])
                 elem["Processed"] = int(parts[0],16) - elem["Processed"]
                 elem["Dropped"] = int(parts[1],16) - elem["Dropped"]
                 elem["Squeezed"] = int(parts[2],16) - elem["Squeezed"]
@@ -235,6 +233,41 @@ class SOFTNETGen(JsonGenerator):
                 elem["RPS Interrupts"] = int(parts[3],16)
                 self.json_dict.append(elem)
 
+class PKT_STEERGen(JsonGenerator):
+
+    def generate_json(self):
+        print("Generate pkt_steer.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        print("Read original pkt_steer.json")
+
+
+        for line in self.f:
+            parts = [x for x in line.split(' ') if x.strip()]
+
+            # Read Queue Number
+            curr_cpu = int(parts[0],16)
+
+            # Check if object exists
+            elem = next((item for item in self.json_dict if item["CPU"] == curr_cpu), None)
+
+            # Write to object
+            if elem is not None:
+                elem["Total"] = int(parts[1],16) - elem["Total"]
+                elem["AssignedToBusy"] = int(parts[2],16) - elem["AssignedToBusy"]
+                elem["NoBusyAvailable"] = int(parts[3],16) - elem["NoBusyAvailable"]
+                elem["TargetIsSelf"] = int(parts[5],16) - elem["TargetIsSelf"]
+            else:
+                elem = dict()
+                elem["CPU"] = curr_cpu
+                elem["Total"] = int(parts[1],16)
+                elem["AssignedToBusy"] = int(parts[2],16)
+                elem["NoBusyAvailable"] = int(parts[3],16)
+                elem["TargetIsSelf"] = int(parts[5],16)
+                self.json_dict.append(elem)
 
 
 argc = len(sys.argv)

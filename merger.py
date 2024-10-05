@@ -23,7 +23,7 @@ for i in range(reps):
 
 
 
-files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json"]
+files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json"]
 
 os.mkdir("./summaries")
 
@@ -34,9 +34,13 @@ for f in files:
     
     # Create new file
     file_name = "summary_"+f
+
+
     with open("./summaries/"+file_name, "w") as file:
 
         for exp in directory:
+            if os.path.isFile("./data/"+exp+"/"+f) is False:
+                continue
             with open("./data/"+exp+"/"+f) as json_file:
                 d = json.load(json_file)
                 for elem in d:
