@@ -12,6 +12,17 @@
 #include <linux/cpu_rmap.h>
 #include <linux/percpu.h>
 
+DEFINE_SPINLOCK(busy_backlog_lock);
+LIST_HEAD(rps_busy_backlog);
+
+struct busy_backlog_item{
+
+	struct list_head list;
+	struct softnet_data *sd;
+	int cpu;
+};
+DEFINE_PER_CPU(struct busy_backlog_item, busy_backlog_item);
+
 
 struct my_ops_stats{
 	int assignedToBusy;
@@ -146,8 +157,6 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		//[Hema] 1. Check qlen of former target
 		// To decide: Do I want to check the input queue only or also process queue?
 
-		//[TODO] I think the problem here might be that tcpu could be -1 at the beginning after rps initialization
-
 		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
 				(skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
 				 && skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue))) {
@@ -164,15 +173,14 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 				//printk("Entry in busy backlog!");
 
-				struct softnet_data *tsd;
+				struct busy_backlog_item *item;
 
-				tsd = list_first_entry_or_null(&rps_busy_backlog, struct softnet_data, busy_backlog_list);
-				spin_unlock(&busy_backlog_lock);
+				item = list_first_entry_or_null(&rps_busy_backlog, struct busy_backlog_item, list);
 
-				if(tsd){
+				if(item){
 					//printk("Found busy CPU!!");
 					stats->assignedToBusy++;
-					tcpu = tsd->cpu;
+					tcpu = item->cpu;
 					rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, next_cpu);
 
 				}else{
@@ -180,9 +188,10 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 				}
 
 			}else{
-					stats->noBusyAvailable++;
-				spin_unlock(&busy_backlog_lock);
-				}
+				stats->noBusyAvailable++;
+			}
+
+			spin_unlock(&busy_backlog_lock);
 
 
 
@@ -243,21 +252,21 @@ done:
 
 static void this_before(void){
 
-	struct softnet_data *sd = &per_cpu(softnet_data, smp_processor_id());	
+	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, smp_processor_id());	
 
     
 	spin_lock(&busy_backlog_lock);
-    list_add(&sd->busy_backlog_list, &rps_busy_backlog);
+    list_add(&item->list, &rps_busy_backlog);
     spin_unlock(&busy_backlog_lock);
-    
+   
 }
 
 static void this_after(void){
 	
-	struct softnet_data *sd = &per_cpu(softnet_data, smp_processor_id());	
+	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, smp_processor_id());	
 	
     spin_lock(&busy_backlog_lock);
-	list_del_init(&sd->busy_backlog_list);
+	list_del_init(&item->list);
     spin_unlock(&busy_backlog_lock);
 
 }
@@ -317,8 +326,23 @@ static int create_proc(void){
 
 static int __init init_pkt_steer_mod(void){
 	int ret;
+	int i;
+	struct busy_backlog_item *item;
 	printk("Inserting Module");
+	
+	for_each_possible_cpu(i){
+		item = &per_cpu(busy_backlog_item, i);
 
+		item->cpu = i;
+		INIT_LIST_HEAD(&item->list);
+		item->sd = &per_cpu(softnet_data, i);
+
+	}
+
+	if(!list_empty(&rps_busy_backlog)){
+		printk(KERN_ERR "Busy Backlog still has entries. Abort.");
+		return -1;
+	}
 
 	ret = create_proc();
 	if(ret < 0){

@@ -1,16 +1,10 @@
 diff -urpN ../linux-6.10.8/include/linux/netdevice.h ./linux-6.10.8/include/linux/netdevice.h
 --- ../linux-6.10.8/include/linux/netdevice.h	2024-09-04 20:30:16.000000000 +0900
-+++ ./linux-6.10.8/include/linux/netdevice.h	2024-10-04 18:20:31.904409213 +0900
-@@ -3240,7 +3240,18 @@ struct softnet_data {
++++ ./linux-6.10.8/include/linux/netdevice.h	2024-10-06 10:36:20.177627977 +0900
+@@ -3240,7 +3240,12 @@ struct softnet_data {
  	struct softnet_data	*rps_ipi_next;
  	unsigned int		cpu;
  	unsigned int		input_queue_tail;
-+	
-+	//[HEMA] Define some list head so that we can put this on our busy-backlogs list
-+
-+	struct list_head	busy_backlog_list;
-+
-+	//=============================================================================
 +
 +
  #endif
@@ -20,7 +14,7 @@ diff -urpN ../linux-6.10.8/include/linux/netdevice.h ./linux-6.10.8/include/linu
  	struct sk_buff_head	input_pkt_queue;
  	struct napi_struct	backlog;
  
-@@ -3256,6 +3267,7 @@ struct softnet_data {
+@@ -3256,6 +3261,7 @@ struct softnet_data {
  
  DECLARE_PER_CPU_ALIGNED(struct softnet_data, softnet_data);
  
@@ -30,7 +24,7 @@ diff -urpN ../linux-6.10.8/include/linux/netdevice.h ./linux-6.10.8/include/linu
  	return this_cpu_read(softnet_data.xmit.recursion);
 diff -urpN ../linux-6.10.8/include/net/hotdata.h ./linux-6.10.8/include/net/hotdata.h
 --- ../linux-6.10.8/include/net/hotdata.h	2024-09-04 20:30:16.000000000 +0900
-+++ ./linux-6.10.8/include/net/hotdata.h	2024-10-04 17:11:34.027897047 +0900
++++ ./linux-6.10.8/include/net/hotdata.h	2024-10-05 17:04:09.167954791 +0900
 @@ -41,6 +41,10 @@ struct net_hotdata {
  	int			sysctl_max_skb_frags;
  	int			sysctl_skb_defer_max;
@@ -44,8 +38,8 @@ diff -urpN ../linux-6.10.8/include/net/hotdata.h ./linux-6.10.8/include/net/hotd
  #define inet_ehash_secret	net_hotdata.tcp_protocol.secret
 diff -urpN ../linux-6.10.8/include/net/pkt_steer_ops.h ./linux-6.10.8/include/net/pkt_steer_ops.h
 --- ../linux-6.10.8/include/net/pkt_steer_ops.h	1970-01-01 09:00:00.000000000 +0900
-+++ ./linux-6.10.8/include/net/pkt_steer_ops.h	2024-10-05 09:15:21.542180998 +0900
-@@ -0,0 +1,24 @@
++++ ./linux-6.10.8/include/net/pkt_steer_ops.h	2024-10-06 10:36:40.729627251 +0900
+@@ -0,0 +1,21 @@
 +#ifndef _NET_PKT_STEER_OPS_H
 +#define _NET_PKT_STEER_OPS_H
 +
@@ -62,72 +56,31 @@ diff -urpN ../linux-6.10.8/include/net/pkt_steer_ops.h ./linux-6.10.8/include/ne
 +
 +
 +extern struct pkt_steer_ops pkt_standard_ops;
-+extern struct list_head rps_busy_backlog;
-+extern spinlock_t busy_backlog_lock;
 +
 +//================================================
-+
 +
 +
 +#endif /* _NET_PKT_STEER_OPS_H */
 diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
 --- ../linux-6.10.8/net/core/dev.c	2024-09-04 20:30:16.000000000 +0900
-+++ ./linux-6.10.8/net/core/dev.c	2024-10-05 09:18:38.680757095 +0900
-@@ -162,6 +162,21 @@
++++ ./linux-6.10.8/net/core/dev.c	2024-10-06 10:38:21.291424152 +0900
+@@ -162,6 +162,7 @@
  #include "dev.h"
  #include "net-sysfs.h"
  
-+//[HEMA] Put the busy list here
-+DEFINE_SPINLOCK(busy_backlog_lock);
-+EXPORT_SYMBOL(busy_backlog_lock);
-+struct list_head rps_busy_backlog;
-+EXPORT_SYMBOL(rps_busy_backlog);
-+//=============================
-+
-+//[HEMA] Initialize the interface
-+
-+static DEFINE_SPINLOCK(pkt_steer_list_lock);
-+static LIST_HEAD(pkt_steer_list);
-+
-+//===============================
-+
 +
  static DEFINE_SPINLOCK(ptype_lock);
  struct list_head ptype_base[PTYPE_HASH_SIZE] __read_mostly;
  
-@@ -4473,7 +4488,9 @@ static inline void ____napi_schedule(str
+@@ -4473,7 +4474,6 @@ static inline void ____napi_schedule(str
  				     struct napi_struct *napi)
  {
  	struct task_struct *thread;
 -
-+	//[HEMA]===========
-+ 	int ret;
-+	//=================
  	lockdep_assert_irqs_disabled();
  
  	if (test_bit(NAPI_STATE_THREADED, &napi->state)) {
-@@ -4489,7 +4506,19 @@ static inline void ____napi_schedule(str
- 				goto use_local_napi;
- 
- 			set_bit(NAPI_STATE_SCHED_THREADED, &napi->state);
--			wake_up_process(thread);
-+			//[HEMA]================= 
-+			//Check the return value of wake_up_process, 
-+			//to check whether the thread was already running or not
-+			//The goal of the implementation was to minimize the overhead,
-+			//so minimize the amount of wake ups performed. This can be used as
-+			//a metric to check the efficiency of my implementation.
-+			
-+
-+			ret = wake_up_process(thread);
-+			
-+			//wake_up_process(thread);
-+
-+			//========================
- 			return;
- 		}
- 	}
-@@ -4565,6 +4594,9 @@ set_rps_cpu(struct net_device *dev, stru
+@@ -4565,6 +4565,9 @@ set_rps_cpu(struct net_device *dev, stru
  static int get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
  		       struct rps_dev_flow **rflowp)
  {
@@ -137,7 +90,7 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  	const struct rps_sock_flow_table *sock_flow_table;
  	struct netdev_rx_queue *rxqueue = dev->_rx;
  	struct rps_dev_flow_table *flow_table;
-@@ -4599,6 +4631,9 @@ static int get_rps_cpu(struct net_device
+@@ -4599,6 +4602,9 @@ static int get_rps_cpu(struct net_device
  		goto done;
  
  	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
@@ -147,7 +100,7 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  	if (flow_table && sock_flow_table) {
  		struct rps_dev_flow *rflow;
  		u32 next_cpu;
-@@ -4635,7 +4670,11 @@ static int get_rps_cpu(struct net_device
+@@ -4635,7 +4641,11 @@ static int get_rps_cpu(struct net_device
  		     ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
  		      rflow->last_qtail)) >= 0)) {
  			tcpu = next_cpu;
@@ -160,28 +113,23 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  		}
  
  		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
-@@ -4844,8 +4883,10 @@ static int enqueue_to_backlog(struct sk_
+@@ -4844,8 +4854,9 @@ static int enqueue_to_backlog(struct sk_
  			 * non atomic operation as we own the queue lock.
  			 */
  			if (!__test_and_set_bit(NAPI_STATE_SCHED,
 -						&sd->backlog.state))
 +						&sd->backlog.state)){
-+				//[HEMA] Put counter here
  				napi_schedule_rps(sd);
 +			}
  		}
  		__skb_queue_tail(&sd->input_pkt_queue, skb);
  		tail = rps_input_queue_tail_incr(sd);
-@@ -5135,11 +5176,20 @@ static int netif_rx_internal(struct sk_b
- #ifdef CONFIG_RPS
+@@ -5136,10 +5147,14 @@ static int netif_rx_internal(struct sk_b
  	if (static_branch_unlikely(&rps_needed)) {
  		struct rps_dev_flow voidflow, *rflow = &voidflow;
-+		//[HEMA] local variables
-+		struct softnet_data *sd;
-+		//=======================
  		int cpu;
 +		//[HEMA] Get softnet data of this core
-+		sd = &per_cpu(softnet_data, smp_processor_id());
++		struct softnet_data *sd = &per_cpu(softnet_data, smp_processor_id());
 +		//====================================
  
  		rcu_read_lock();
@@ -189,33 +137,23 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
 -		cpu = get_rps_cpu(skb->dev, skb, &rflow);
 +		//[HEMA] Replace with interface
 +		cpu = sd->pkt_steer_ops->get_rps_cpu(skb->dev, skb, &rflow);
-+		//[ORIGINAL]
-+		//cpu = get_rps_cpu(skb->dev, skb, &rflow);
 +		//====================================
  		if (cpu < 0)
  			cpu = smp_processor_id();
  
-@@ -5812,8 +5862,18 @@ static int netif_receive_skb_internal(st
- 	rcu_read_lock();
+@@ -5813,7 +5828,10 @@ static int netif_receive_skb_internal(st
  #ifdef CONFIG_RPS
  	if (static_branch_unlikely(&rps_needed)) {
-+		//[HEMA] local variables
-+		struct softnet_data *sd;
-+		//=======================
  		struct rps_dev_flow voidflow, *rflow = &voidflow;
 -		int cpu = get_rps_cpu(skb->dev, skb, &rflow);
-+		//[HEMA] Get softnet data of this core
-+		sd = &per_cpu(softnet_data, smp_processor_id());
-+		//====================================
-+		//[HEMA] Replace with interface
++		//[HEMA] Apply packet steering interface
++		struct softnet_data *sd = &per_cpu(softnet_data, smp_processor_id());
 +		int cpu = sd->pkt_steer_ops->get_rps_cpu(skb->dev, skb, &rflow);
-+		//[ORIGINAL]
-+		//int cpu = get_rps_cpu(skb->dev, skb, &rflow);
 +		//========================================
  
  		if (cpu >= 0) {
  			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
-@@ -5831,6 +5891,9 @@ void netif_receive_skb_list_internal(str
+@@ -5831,6 +5849,9 @@ void netif_receive_skb_list_internal(str
  {
  	struct sk_buff *skb, *next;
  	struct list_head sublist;
@@ -225,7 +163,7 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  
  	INIT_LIST_HEAD(&sublist);
  	list_for_each_entry_safe(skb, next, head, list) {
-@@ -5844,10 +5907,17 @@ void netif_receive_skb_list_internal(str
+@@ -5844,10 +5865,17 @@ void netif_receive_skb_list_internal(str
  
  	rcu_read_lock();
  #ifdef CONFIG_RPS
@@ -244,47 +182,39 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  
  			if (cpu >= 0) {
  				/* Will be handled, remove from list */
-@@ -6029,6 +6099,10 @@ static void net_rps_action_and_irq_enabl
+@@ -6028,7 +6056,7 @@ static void net_rps_action_and_irq_enabl
+ 		sd->rps_ipi_list = NULL;
  
  		local_irq_enable();
- 
-+		//[HEMA] Put a counter here to count rps-caused IPIs
-+
-+		//=================================================
+-
 +		
  		/* Send pending IPI's to kick RPS processing on remote cpus. */
  		net_rps_send_ipi(remsd);
  	} else
-@@ -6059,6 +6133,15 @@ static int process_backlog(struct napi_s
+@@ -6059,6 +6087,11 @@ static int process_backlog(struct napi_s
  		net_rps_action_and_irq_enable(sd);
  	}
  
 +	//[HEMA] Put this napi on the list of active napi sessions
 +	if(sd->pkt_steer_ops->before_process_backlog)
 +		sd->pkt_steer_ops->before_process_backlog();
-+	/*busy_backlog = &rps_busy_backlog;
-+	spin_lock(&busy_backlog_lock);
-+	list_add(&sd->busy_backlog_list, busy_backlog);
-+	spin_unlock(&busy_backlog_lock);*/
 +	//========================================================
 +
  	napi->weight = READ_ONCE(net_hotdata.dev_rx_weight);
  	while (again) {
  		struct sk_buff *skb;
-@@ -6069,7 +6152,11 @@ static int process_backlog(struct napi_s
+@@ -6069,7 +6102,9 @@ static int process_backlog(struct napi_s
  			rcu_read_unlock();
  			if (++work >= quota) {
  				rps_input_queue_head_add(sd, work);
 -				return work;
 +				//[HEMA] Funnel this into out part, instead of direct return
 +				goto out;
-+				//[ORIGINAL]
-+				//return work;
 +				//==========================================================
  			}
  
  		}
-@@ -6086,6 +6173,7 @@ static int process_backlog(struct napi_s
+@@ -6086,6 +6121,7 @@ static int process_backlog(struct napi_s
  			 */
  			napi->state &= NAPIF_STATE_THREADED;
  			again = false;
@@ -292,7 +222,7 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  		} else {
  			skb_queue_splice_tail_init(&sd->input_pkt_queue,
  						   &sd->process_queue);
-@@ -6095,6 +6183,15 @@ static int process_backlog(struct napi_s
+@@ -6095,6 +6131,12 @@ static int process_backlog(struct napi_s
  
  	if (work)
  		rps_input_queue_head_add(sd, work);
@@ -300,15 +230,12 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
 +out:
 +	if(sd->pkt_steer_ops->after_process_backlog)
 +		sd->pkt_steer_ops->after_process_backlog();
-+	/*spin_lock(&busy_backlog_lock);
-+	list_del_init(&sd->busy_backlog_list);
-+	spin_unlock(&busy_backlog_lock);*/
 +//==============================================
 +
  	return work;
  }
  
-@@ -6879,6 +6976,9 @@ static __latent_entropy void net_rx_acti
+@@ -6879,6 +6921,9 @@ static __latent_entropy void net_rx_acti
  start:
  	sd->in_net_rx_action = true;
  	local_irq_disable();
@@ -318,7 +245,7 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  	list_splice_init(&sd->poll_list, &list);
  	local_irq_enable();
  
-@@ -11883,6 +11983,16 @@ static struct smp_hotplug_thread backlog
+@@ -11883,6 +11928,16 @@ static struct smp_hotplug_thread backlog
  	.setup			= backlog_napi_setup,
  };
  
@@ -335,31 +262,22 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  /*
   *       This is called single threaded during boot, so no need
   *       to take the rtnl semaphore.
-@@ -11904,6 +12014,16 @@ static int __init net_dev_init(void)
+@@ -11904,6 +11959,11 @@ static int __init net_dev_init(void)
  	for (i = 0; i < PTYPE_HASH_SIZE; i++)
  		INIT_LIST_HEAD(&ptype_base[i]);
  
-+	//[HEMA] Initialize main list
-+	INIT_LIST_HEAD(&rps_busy_backlog);
-+	//===========================
-+
 +	//[HEMA] Set standard ops for packet steering
 +	net_hotdata.pkt_steer_ops = &pkt_standard_ops;
-+	//WRITE_ONCE(&net_hotdata.pkt_steer_ops, &pkt_standard_ops);
 +	//===========================================
 +
 +
  	if (register_pernet_subsys(&netdev_net_ops))
  		goto out;
  
-@@ -11927,7 +12047,16 @@ static int __init net_dev_init(void)
+@@ -11927,7 +11987,12 @@ static int __init net_dev_init(void)
  #ifdef CONFIG_RPS
  		INIT_CSD(&sd->csd, rps_trigger_softirq, sd);
  		sd->cpu = i;
-+		//[HEMA] Init our list head
-+		INIT_LIST_HEAD(&sd->busy_backlog_list);
-+		//=========================
-+
 +
  #endif
 +		//[HEMA] Init ops in softnet_data
@@ -369,37 +287,17 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  		INIT_CSD(&sd->defer_csd, trigger_rx_softirq, sd);
  		spin_lock_init(&sd->defer_lock);
  
-Binary files ../linux-6.10.8/net/core/.dev.c.swp and ./linux-6.10.8/net/core/.dev.c.swp differ
 diff -urpN ../linux-6.10.8/net/core/dev.h ./linux-6.10.8/net/core/dev.h
 --- ../linux-6.10.8/net/core/dev.h	2024-09-04 20:30:16.000000000 +0900
-+++ ./linux-6.10.8/net/core/dev.h	2024-10-04 18:23:52.702832987 +0900
-@@ -6,10 +6,28 @@
++++ ./linux-6.10.8/net/core/dev.h	2024-10-05 17:03:50.832141061 +0900
+@@ -6,6 +6,10 @@
  #include <linux/rwsem.h>
  #include <linux/netdevice.h>
  
-+//[HEMA] Hopefully this does not break...
++//[HEMA]
 +#include <net/pkt_steer_ops.h>
 +//======================================
 +
  struct net;
  struct netlink_ext_ack;
  struct cpumask;
- 
-+//[HEMA] Simplistic Interface for testing purposes
-+/*struct pkt_steer_ops{
-+	int (*get_rps_cpu)(struct net_device*, struct sk_buff*, struct rps_dev_flow**);
-+	struct rps_dev_flow* (*set_rps_cpu)(struct net_device*, struct sk_buff*, struct rps_dev_flow*, u16);
-+	void (*before_process_backlog)(void);
-+	void(*after_process_backlog)(void);
-+};
-+*/
-+
-+//extern struct pkt_steer_ops pkt_standard_ops;
-+
-+//================================================
-+
-+
- /* Random bits of netdevice that don't need to be exposed */
- #define FLOW_LIMIT_HISTORY	(1 << 7)  /* must be ^2 and !overflow buckets */
- struct sd_flow_limit {
-+

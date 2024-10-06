@@ -4,14 +4,14 @@ import sys
 
 
 reps = int(sys.argv[1])
-
-bases = ["RSS", "RPS", "RFS"]
-#bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "RSS+Custom"]
+conns_pow_of_2 = int(sys.argv[2])
+#bases = ["RSS", "RPS", "RFS", "Custom"]
+bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "RSS+Custom"]
 directory = []
 
 exp = 1
 tmp = []
-for i in range(6):
+for i in range(conns_pow_of_2):
     for base in bases:
         tmp.append(base+"_"+str(exp))
     exp *= 2
@@ -39,7 +39,7 @@ for f in files:
     with open("./summaries/"+file_name, "w") as file:
 
         for exp in directory:
-            if os.path.isFile("./data/"+exp+"/"+f) is False:
+            if os.path.isfile("./data/"+exp+"/"+f) is False:
                 continue
             with open("./data/"+exp+"/"+f) as json_file:
                 d = json.load(json_file)
