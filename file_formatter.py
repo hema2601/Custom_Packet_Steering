@@ -257,16 +257,24 @@ class PKT_STEERGen(JsonGenerator):
             # Write to object
             if elem is not None:
                 elem["Total"] = int(parts[1],16) - elem["Total"]
-                elem["AssignedToBusy"] = int(parts[2],16) - elem["AssignedToBusy"]
-                elem["NoBusyAvailable"] = int(parts[3],16) - elem["NoBusyAvailable"]
-                elem["TargetIsSelf"] = int(parts[5],16) - elem["TargetIsSelf"]
+                elem["PrevInvalid"] = int(parts[2],16)- elem["PrevInvalid"]
+                elem["PrevIdle"] = int(parts[3],16)- elem["PrevIdle"]
+                elem["AssignedToBusy"] = int(parts[4],16) - elem["AssignedToBusy"]
+                elem["NoBusyAvailable"] = int(parts[5],16) - elem["NoBusyAvailable"]
+                elem["TargetIsSelf"] = int(parts[6],16) - elem["TargetIsSelf"]
+                elem["ChoseInvalid"] = int(parts[7],16) - elem["ChoseInvalid"]
+                elem["Fallback"] = int(parts[8],16) - elem["Fallback"]
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
                 elem["Total"] = int(parts[1],16)
-                elem["AssignedToBusy"] = int(parts[2],16)
-                elem["NoBusyAvailable"] = int(parts[3],16)
-                elem["TargetIsSelf"] = int(parts[5],16)
+                elem["PrevInvalid"] = int(parts[2],16)
+                elem["PrevIdle"] = int(parts[3],16)
+                elem["AssignedToBusy"] = int(parts[4],16)
+                elem["NoBusyAvailable"] = int(parts[5],16)
+                elem["TargetIsSelf"] = int(parts[6],16)
+                elem["ChoseInvalid"] = int(parts[7],16)
+                elem["Fallback"] = int(parts[8],16)
                 self.json_dict.append(elem)
 
 

@@ -11,6 +11,8 @@
 #include <net/netdev_rx_queue.h>
 #include <linux/cpu_rmap.h>
 #include <linux/percpu.h>
+#include <linux/moduleparam.h> 
+
 
 DEFINE_SPINLOCK(busy_backlog_lock);
 LIST_HEAD(rps_busy_backlog);
@@ -30,10 +32,23 @@ struct my_ops_stats{
 	int noBusyAvailableRace;
 	int targetIsSelf;
 	int total;
+	int fallback;
+	int prevInvalid;
+	int prevIdle;
+	int choseInvalid;
 };
 
 DEFINE_PER_CPU(struct my_ops_stats, pkt_steer_stats);
 
+#define APP 1
+#define CURR 2
+#define RPS 3
+#define PREV 4
+
+static int choose_backup_core __read_mostly = PREV;
+
+module_param(choose_backup_core, int, 0644);
+MODULE_PARM_DESC(choose_backup_core, "Decide Core when there are no busy cores: Application Core(1), Current Core(2), RPS(3), Previous(4)");
 
 static struct rps_dev_flow *this_set_cpu(struct net_device *dev, struct sk_buff *skb,
 		       struct rps_dev_flow *rflow, u16 next_cpu){
@@ -153,99 +168,76 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		tcpu = rflow->cpu;
 
 
-
-		//[Hema] 1. Check qlen of former target
-		// To decide: Do I want to check the input queue only or also process queue?
-
 		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
 				(skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
 				 && skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue))) {
 
-			//Target is not busy anymore, find a new one
-			//		printk("Need to find new CPU");
-			tcpu = next_cpu;
-			//[HEMA] Replace with interface
-			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, next_cpu);
+			if(tcpu >= nr_cpu_ids || !cpu_online(tcpu)){
+				stats->prevInvalid++;
+			}else{
+				stats->prevIdle++;
+			}
 
+			//[TODO] Decide backup core
+			switch(choose_backup_core){
+				case APP:
+					tcpu = next_cpu;
+					break;
+				case CURR:
+					tcpu = this_cpu;
+					break;
+				case RPS:
+					if (map) 
+						tcpu = map->cpus[reciprocal_scale(hash, map->len)];
+					break;
+				case PREV:
+				default:
+					break;
+			}
 
 			spin_lock(&busy_backlog_lock);
 			if(!list_empty(&rps_busy_backlog)){
-
-				//printk("Entry in busy backlog!");
-
 				struct busy_backlog_item *item;
-
 				item = list_first_entry_or_null(&rps_busy_backlog, struct busy_backlog_item, list);
-
 				if(item){
-					//printk("Found busy CPU!!");
 					stats->assignedToBusy++;
 					tcpu = item->cpu;
-					rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, next_cpu);
-
 				}else{
 					stats->noBusyAvailableRace++;
 				}
-
 			}else{
 				stats->noBusyAvailable++;
 			}
-
 			spin_unlock(&busy_backlog_lock);
 
+			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, tcpu);
+		}
 
+		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
+			*rflowp = rflow;
+			cpu = tcpu;
+			goto done;
+		}else{
+			stats->choseInvalid++;
 
 		}
-		//===========================================================
-
-
-
-	/*
-	 * If the desired CPU (where last recvmsg was done (next_cpu)) is
-	 * different from current CPU (one in the rx-queue flow
-	 * table entry(tcpu)), switch if one of the following holds:
-	 *   - Current CPU is unset (>= nr_cpu_ids).
-	 *   - Current CPU is offline.
-	 *   - The current CPU's queue tail has advanced beyond the
-	 *     last packet that was enqueued using this table entry.
-	 *     This guarantees that all previous packets for the flow
-	 *     have been dequeued, thus preserving in order delivery.
-	 */
-	/*if (unlikely(tcpu != next_cpu) &&
-	  (tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
-	  ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
-	  rflow->last_qtail)) >= 0)) {
-	  tcpu = next_cpu;
-	//[HEMA] Replace with interface
-	rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, next_cpu);
-	//[ORIGINAL]
-	//rflow = set_rps_cpu(dev, skb, rflow, next_cpu);
-	//=============================================
-	}*/
-
-
-
-	if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
-		*rflowp = rflow;
-		cpu = tcpu;
-		goto done;
 	}
-    }
 
 try_rps:
-
-    if (map) {
-	    tcpu = map->cpus[reciprocal_scale(hash, map->len)];
-	    if (cpu_online(tcpu)) {
-		    cpu = tcpu;
-		    goto done;
-	    }
-    }
+	//Fall back on RPS
+	stats->fallback++;
+	if (map) {
+		tcpu = map->cpus[reciprocal_scale(hash, map->len)];
+		if (cpu_online(tcpu)) {
+			cpu = tcpu;
+			goto done;
+		}
+	}
 
 done:
-    if(cpu == this_cpu)
-	    stats->targetIsSelf++;
-    return cpu;
+	if(cpu == this_cpu)
+		stats->targetIsSelf++;
+	return cpu;
 
 
 }
@@ -286,7 +278,7 @@ static int my_proc_show(struct seq_file *m,void *v){
 
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		seq_printf(m, "%08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.assignedToBusy, stat.noBusyAvailable, stat.noBusyAvailableRace, stat.targetIsSelf);
+		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback);
 	}
 
 	return 0;

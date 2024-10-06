@@ -6,7 +6,7 @@ import sys
 reps = int(sys.argv[1])
 conns_pow_of_2 = int(sys.argv[2])
 #bases = ["RSS", "RPS", "RFS", "Custom"]
-bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "RSS+Custom"]
+bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "Custom1", "Custom2", "Custom3", "RSS+Custom", "RSS+Custom1", "RSS+Custom2", "RSS+Custom3"]
 directory = []
 
 exp = 1

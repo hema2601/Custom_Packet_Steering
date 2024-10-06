@@ -9,12 +9,13 @@ rss=${2:-1}
 rps=${3:-0}
 rfs=${4:-0}
 custom=${5:-0}
-conns=${6:-6}
-intf=${7:-ens4np0}
-num_queue=${8:-8}
-core_start=${9:-0}
-core_num=${10:-8}
-time=${11:-10} 
+backup_core=${6:-1}
+conns=${7:-6}
+intf=${8:-ens4np0}
+num_queue=${9:-8}
+core_start=${10:-0}
+core_num=${11:-8}
+time=${12:-10} 
 
 IPERF_BIN=iperf3
 
@@ -69,9 +70,11 @@ if [[ "$custom" == "1" ]]
 then
 	#enable rfs
 	echo "Enable Custom (based on RFS)"
-	make -C $current_path/module
-	insmod $current_path/module/pkt_steer_module.ko
+	#make -C $current_path/module
+	#insmod $current_path/module/pkt_steer_module.ko
 	$current_path/scripts/enable_rfs.sh $intf
+	$current_path/scripts/enable_rps.sh $intf $core_start $core_num
+	echo $backup_core > /sys/module/pkt_steer_module/parameters/choose_backup_core
 else
 	echo "Disable Custom"
 	#rmmod pkt_steer_module
@@ -109,7 +112,7 @@ python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET
 if [[ "$custom" == "1" ]]
 then
 python3 file_formatter.py $exp_name PKT_STEER
-rmmod pkt_steer_module
+#rmmod pkt_steer_module
 fi 
 
 
