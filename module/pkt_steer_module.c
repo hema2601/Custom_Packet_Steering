@@ -170,7 +170,8 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
 				(skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
-				 && skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue))) {
+				//remove check for process_queue. Reason: The interrupt decision is made base don only input_pkt_queue
+				 /*&& skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue)*/)) {
 
 			if(tcpu >= nr_cpu_ids || !cpu_online(tcpu)){
 				stats->prevInvalid++;
@@ -267,8 +268,8 @@ static struct pkt_steer_ops my_ops = {
 
 	.get_rps_cpu = this_get_cpu,
 	.set_rps_cpu = this_set_cpu,
-	.before_process_backlog = this_before,
-	.after_process_backlog = this_after
+	.mark_as_busy = this_before,
+	.mark_as_idle = this_after
 
 };
 
