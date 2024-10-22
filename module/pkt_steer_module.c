@@ -6,7 +6,7 @@
 #include <linux/seq_file.h>
 #include <linux/skbuff.h>
 
-#include "/home/hema/mini_project_rfs/linux-6.10.8/include/net/pkt_steer_ops.h"
+#include <net/pkt_steer_ops.h>
 #include <net/rps.h>
 #include <net/netdev_rx_queue.h>
 #include <linux/cpu_rmap.h>
@@ -49,6 +49,11 @@ static int choose_backup_core __read_mostly = PREV;
 
 module_param(choose_backup_core, int, 0644);
 MODULE_PARM_DESC(choose_backup_core, "Decide Core when there are no busy cores: Application Core(1), Current Core(2), RPS(3), Previous(4)");
+
+static int custom_toggle __read_mostly = 1;
+
+module_param(custom_toggle, int, 0644);
+MODULE_PARM_DESC(custom_toggle, "Switch between custom and normal packet steering, Normal = 0, Custom = 1");
 
 static struct rps_dev_flow *this_set_cpu(struct net_device *dev, struct sk_buff *skb,
 		       struct rps_dev_flow *rflow, u16 next_cpu){
@@ -114,6 +119,8 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	u32 hash;
 
 	stats = &per_cpu(pkt_steer_stats, this_cpu);
+
+	//printk("this_get_cpu: Called");
 
 	stats->total++;
 
@@ -243,35 +250,171 @@ done:
 
 }
 
-static void this_before(void){
+static void this_before(int tcpu){
 
-	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, smp_processor_id());	
-
+	struct list_head *list = &(per_cpu(busy_backlog_item, tcpu).list);	
+	
     
 	spin_lock(&busy_backlog_lock);
-    list_add(&item->list, &rps_busy_backlog);
+	//printk("Adding to busy list");
+	if(list->prev == list)
+    	list_add(list, &rps_busy_backlog);
     spin_unlock(&busy_backlog_lock);
    
 }
 
-static void this_after(void){
+static void this_after(int tcpu){
 	
-	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, smp_processor_id());	
+	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, tcpu);	
 	
     spin_lock(&busy_backlog_lock);
+	//printk("Removing from busy list");
 	list_del_init(&item->list);
     spin_unlock(&busy_backlog_lock);
 
 }
 
+static int get_rps_cpu_copy(struct net_device *dev, struct sk_buff *skb,
+		struct rps_dev_flow **rflowp)
+{
+	//[HEMA] Add local variables
+	struct softnet_data *sd;
+	//===========================
+	const struct rps_sock_flow_table *sock_flow_table;
+	struct netdev_rx_queue *rxqueue = dev->_rx;
+	struct rps_dev_flow_table *flow_table;
+	struct rps_map *map;
+	int cpu = -1;
+	u32 tcpu;
+	u32 hash;
+
+	if (skb_rx_queue_recorded(skb)) {
+		u16 index = skb_get_rx_queue(skb);
+
+		if (unlikely(index >= dev->real_num_rx_queues)) {
+			WARN_ONCE(dev->real_num_rx_queues > 1,
+					"%s received packet on queue %u, but number "
+					"of RX queues is %u\n",
+					dev->name, index, dev->real_num_rx_queues);
+			goto done;
+		}
+		rxqueue += index;
+	}
+
+	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
+
+	flow_table = rcu_dereference(rxqueue->rps_flow_table);
+	map = rcu_dereference(rxqueue->rps_map);
+	if (!flow_table && !map)
+		goto done;
+
+	skb_reset_network_header(skb);
+	hash = skb_get_hash(skb);
+	if (!hash)
+		goto done;
+
+	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
+	//[HEMA] Get sd to access pkt steering ops
+	sd = &per_cpu(softnet_data, smp_processor_id());
+	//=======================================
+	if (flow_table && sock_flow_table) {
+		struct rps_dev_flow *rflow;
+		u32 next_cpu;
+		u32 ident;
+
+		/* First check into global flow table if there is a match.
+		 * This READ_ONCE() pairs with WRITE_ONCE() from rps_record_sock_flow().
+		 */
+		ident = READ_ONCE(sock_flow_table->ents[hash & sock_flow_table->mask]);
+		if ((ident ^ hash) & ~net_hotdata.rps_cpu_mask)
+			goto try_rps;
+
+		next_cpu = ident & net_hotdata.rps_cpu_mask;
+
+		/* OK, now we know there is a match,
+		 * we can look at the local (per receive queue) flow table
+		 */
+		rflow = &flow_table->flows[hash & flow_table->mask];
+		tcpu = rflow->cpu;
+
+		/*
+		 * If the desired CPU (where last recvmsg was done) is
+		 * different from current CPU (one in the rx-queue flow
+		 * table entry), switch if one of the following holds:
+		 *   - Current CPU is unset (>= nr_cpu_ids).
+		 *   - Current CPU is offline.
+		 *   - The current CPU's queue tail has advanced beyond the
+		 *     last packet that was enqueued using this table entry.
+		 *     This guarantees that all previous packets for the flow
+		 *     have been dequeued, thus preserving in order delivery.
+		 */
+		if (unlikely(tcpu != next_cpu) &&
+				(tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
+				 ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
+					 rflow->last_qtail)) >= 0)) {
+			tcpu = next_cpu;
+			//[HEMA] Replace with interface
+			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, next_cpu);
+			//[ORIGINAL]
+			//rflow = set_rps_cpu(dev, skb, rflow, next_cpu);
+			//=============================================
+		}
+
+		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
+			*rflowp = rflow;
+			cpu = tcpu;
+			goto done;
+		}
+	}
+
+try_rps:
+
+	if (map) {
+		tcpu = map->cpus[reciprocal_scale(hash, map->len)];
+		if (cpu_online(tcpu)) {
+			cpu = tcpu;
+			goto done;
+		}
+	}
+
+done:
+	return cpu;
+}
+
+
+
+
+
+static void interface_mark_as_busy(int tcpu){
+
+	if(custom_toggle == 1) this_before(tcpu);
+
+}
+static void interface_mark_as_idle(int tcpu){
+
+	if(custom_toggle == 1) this_after(tcpu);
+		
+}
+static int interface_get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
+		struct rps_dev_flow **rflowp){
+
+	if(custom_toggle == 1)	return this_get_cpu(dev, skb, rflowp);
+		
+	else 				return get_rps_cpu_copy(dev, skb, rflowp);
+
+
+}
+
+
 static struct pkt_steer_ops my_ops = {
 
-	.get_rps_cpu = this_get_cpu,
+	.get_rps_cpu = interface_get_rps_cpu,
 	.set_rps_cpu = this_set_cpu,
-	.mark_as_busy = this_before,
-	.mark_as_idle = this_after
+	.mark_as_busy = interface_mark_as_busy,
+	.mark_as_idle = interface_mark_as_idle
 
 };
+
 
 static int my_proc_show(struct seq_file *m,void *v){
 

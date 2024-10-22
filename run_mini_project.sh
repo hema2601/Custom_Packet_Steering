@@ -75,8 +75,11 @@ then
 	$current_path/scripts/enable_rfs.sh $intf
 	$current_path/scripts/enable_rps.sh $intf $core_start $core_num
 	echo $backup_core > /sys/module/pkt_steer_module/parameters/choose_backup_core
+	echo 1 > /sys/module/pkt_steer_module/parameters/custom_toggle
 else
 	echo "Disable Custom"
+	echo 0 > /sys/module/pkt_steer_module/parameters/custom_toggle
+
 	#rmmod pkt_steer_module
 	if [[ "$rfs" == "0" ]]
 	then
