@@ -11,8 +11,9 @@ class Filetype(Enum):
     IPERF       = 4
     SOFTNET     = 5
     PKT_STEER   = 6
+    PROC_STAT   = 7
 
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER'])
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT'])
 
 
 class JsonGenerator:
@@ -132,16 +133,26 @@ class PACKET_CNTGen(JsonGenerator):
     def read_source(self):
         print("Read original packet_cnt.json")
         for line in self.f:
+
+            dropped = False
+
             parts = [x for x in line.split(':') if x.strip()]
 
             # Read Type (TX/RX)
-            if 'rx' in parts[0]:
+            if 'dropped' in parts[0]:
+                net_type = 'dropped'
+                dropped = True
+            elif 'rx' in parts[0]:
                 net_type = 'RX'
-            if 'tx' in parts[0]:
+            elif 'tx' in parts[0]:
                 net_type = 'TX'
 
             # Read Queue Number
-            q_num = int(re.sub("[^0-9]", "", parts[0]))
+            print(parts[0])
+            if not dropped:
+                q_num = int(re.sub("[^0-9]", "", parts[0]))
+            else:
+                q_num = -1
 
             # Check if object exists
             elem = next((item for item in self.json_dict if item["Queue"] == q_num and item["Type"] == net_type), None)
@@ -213,7 +224,7 @@ class SOFTNETGen(JsonGenerator):
             parts = [x for x in line.split(' ') if x.strip()]
 
             # Read Queue Number
-            curr_cpu = int(parts[-1],16)
+            curr_cpu = int(parts[-3],16)
 
             # Check if object exists
             elem = next((item for item in self.json_dict if item["CPU"] == curr_cpu), None)
@@ -223,14 +234,21 @@ class SOFTNETGen(JsonGenerator):
                 elem["Processed"] = int(parts[0],16) - elem["Processed"]
                 elem["Dropped"] = int(parts[1],16) - elem["Dropped"]
                 elem["Squeezed"] = int(parts[2],16) - elem["Squeezed"]
-                elem["RPS Interrupts"] = int(parts[3],16) - elem["RPS Interrupts"]
+                elem["RPS Interrupts"] = int(parts[9],16) - elem["RPS Interrupts"]
+                elem["IPI Enqueued"] = int(parts[4],16)- elem["IPI Enqueued"]
+                elem["InputQ Dequeued"] = int(parts[5],16)- elem["InputQ Dequeued"]
+                elem["Input Pkts"] = int(parts[6],16) - elem["Input Pkts"]
+
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
                 elem["Processed"] = int(parts[0],16)
                 elem["Dropped"] = int(parts[1],16)
                 elem["Squeezed"] = int(parts[2],16)
-                elem["RPS Interrupts"] = int(parts[3],16)
+                elem["RPS Interrupts"] = int(parts[9],16)
+                elem["IPI Enqueued"] = int(parts[4],16)
+                elem["InputQ Dequeued"] = int(parts[5],16)
+                elem["Input Pkts"] = int(parts[6],16)
                 self.json_dict.append(elem)
 
 class PKT_STEERGen(JsonGenerator):
@@ -275,6 +293,60 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16)
                 elem["ChoseInvalid"] = int(parts[7],16)
                 elem["Fallback"] = int(parts[8],16)
+                self.json_dict.append(elem)
+
+class PROC_STATGen(JsonGenerator):
+
+    def generate_json(self):
+        print("Generate proc_stat.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        print("Read original proc_stat.json")
+
+
+        for line in self.f:
+            parts = [x for x in line.split(' ') if x.strip()]
+
+            # Read Queue Number
+            if len(parts[0]) == 3:
+                continue
+
+            if parts[0][:3] != "cpu":
+                continue
+
+            curr_cpu = int(parts[0][3:])
+
+            # Check if object exists
+            elem = next((item for item in self.json_dict if item["CPU"] == curr_cpu), None)
+
+            # Write to object
+            if elem is not None:
+                elem["User"] = int(parts[1]) - elem["User"]
+                elem["Nice"] = int(parts[2]) - elem["Nice"]
+                elem["System"] = int(parts[3]) - elem["System"]
+                elem["Idle"] = int(parts[4]) - elem["Idle"]
+                elem["IOWait"] = int(parts[5]) - elem["IOWait"]
+                elem["Irq"] = int(parts[6]) - elem["Irq"]
+                elem["Softirq"] = int(parts[7]) - elem["Softirq"]
+                elem["Steal"] = int(parts[8]) - elem["Steal"]
+                elem["Guest"] = int(parts[9]) - elem["Guest"]
+                elem["Guest_Nice"] = int(parts[10]) - elem["Guest_Nice"]
+            else:
+                elem = dict()
+                elem["CPU"] = curr_cpu
+                elem["User"] = int(parts[1])
+                elem["Nice"] = int(parts[2])
+                elem["System"] = int(parts[3])
+                elem["Idle"] = int(parts[4])
+                elem["IOWait"] = int(parts[5])
+                elem["Irq"] = int(parts[6])
+                elem["Softirq"] = int(parts[7])
+                elem["Steal"] = int(parts[8])
+                elem["Guest"] = int(parts[9])
+                elem["Guest_Nice"] = int(parts[10])
                 self.json_dict.append(elem)
 
 

@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+	<head>
+		<title>IPC Data</title>
+		<script src="https://cdn.jsdelivr.net/npm/vega@5.29.0"></script>
+		<script src="https://cdn.jsdelivr.net/npm/vega-lite@5.19.0"></script>
+		<script src="https://cdn.jsdelivr.net/npm/vega-embed@6.25.0"></script>
+
+		<script src="web/components/cpu_util_graph.js"></script>
+		<script src="web/components/drop_graph.js"></script>
+		<script src="web/components/ipi_graph.js"></script>
+		<script src="web/components/pkt_steer_graph.js"></script>
+		<script src="web/components/tp_graph.js"></script>
+		<script src="web/components/inputq_graph.js"></script>
+	</head>
+	<body>
+
+
+		<h1>Data: <span id="datadir">None</span></h1>
+
+		<!-- Input field -->
+		<input type="text" id="myInput" placeholder="Enter text">
+
+		<!-- Button to get input value -->
+		<button onclick="getValue()">Get Value</button>
+
+		<div id="Throughput"></div>
+		<div id="Drops"></div>
+		<div id="PpIPI"></div>
+		<div id="PktSteer"></div>
+		<div id="CPUUtil"></div>
+		<div id="InputQData"></div>
+
+		<script type="text/javascript">
+
+			var base_path = "data/exp_under_sparse/"
+
+var ds = document.getElementById("datadir");
+console.log(ds.innerHTML)
+
+function getValue() {
+	// Get the input element by its ID
+	let inputField = document.getElementById("myInput");
+
+	// Get the value of the input field
+	let value = inputField.value;
+
+	document.getElementById("datadir").innerHTML = value;
+
+	loadAllGraphs("./summaries/")
+	//loadAllGraphs("data/".concat(value).concat("/"))
+
+}
+
+
+
+function fetchJSONData(path, divs, graphs) {
+	fetch(path)
+		.then((res) => {
+			if (!res.ok) {
+				throw new Error
+				(`HTTP error! Status: ${res.status}`);
+			}
+			return res.json();
+		})
+		.then((data) =>
+			{
+				divs.forEach((div, idx) => {
+
+					vegaEmbed(div, graphs[idx]).then(res =>
+						res.view
+						.insert('myData', data
+						).resize()
+						.run()
+					)
+				}
+				);
+
+
+
+			})
+			.catch((error) =>
+				console.error("Unable to fetch data:", error));
+}
+
+function loadAllGraphs(path){
+	
+
+	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'], [Throughput])
+	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'], [Drops])
+	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI', '#InputQData'], [PpIPI, InputQData])
+	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'], [PktSteer])
+	fetchJSONData(path.concat("summary_proc_stat.json"), ['#CPUUtil'], [CPUUtil])
+
+}
+
+
+		</script>
+	</body>
+</html>

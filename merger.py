@@ -5,6 +5,10 @@ import sys
 
 reps = int(sys.argv[1])
 conns_pow_of_2 = int(sys.argv[2])
+if len(sys.argv) > 3:
+    base_dir = sys.argv[3]
+else:
+    base_dir = "."
 #bases = ["RSS", "RPS", "RFS", "Custom"]
 bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "Custom1", "Custom2", "Custom3", "RSS+Custom", "RSS+Custom1", "RSS+Custom2", "RSS+Custom3"]
 directory = []
@@ -23,7 +27,7 @@ for i in range(reps):
 
 
 
-files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json"]
+files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json"]
 
 os.mkdir("./summaries")
 
@@ -39,13 +43,16 @@ for f in files:
     with open("./summaries/"+file_name, "w") as file:
 
         for exp in directory:
-            if os.path.isfile("./data/"+exp+"/"+f) is False:
+            if os.path.isfile("./data/" + base_dir + "/" + exp+"/"+f) is False:
                 continue
-            with open("./data/"+exp+"/"+f) as json_file:
+            with open("./data/" + base_dir + "/"+exp+"/"+f) as json_file:
+                print(exp + " " + f)
                 d = json.load(json_file)
                 for elem in d:
+                    #print(elem)
                     elem["Exp"]=exp.split("_")[0]
                     elem["Conns"]=exp.split("_")[1]
+                    elem["Rep"]=exp.split("_")[2]
                     new_dict.append(elem)
 
         json.dump(new_dict, file, indent=0)

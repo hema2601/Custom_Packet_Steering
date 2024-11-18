@@ -1,0 +1,355 @@
+diff -urpN ../linux-6.10.8/drivers/net/ethernet/mellanox/mlx5/core/dpll.c ./linux-6.10.8/drivers/net/ethernet/mellanox/mlx5/core/dpll.c
+--- ../linux-6.10.8/drivers/net/ethernet/mellanox/mlx5/core/dpll.c	2024-09-04 20:30:16.000000000 +0900
++++ ./linux-6.10.8/drivers/net/ethernet/mellanox/mlx5/core/dpll.c	2024-10-30 11:51:36.459165030 +0900
+@@ -452,7 +452,6 @@ static struct auxiliary_driver mlx5_dpll
+ 	.resume = mlx5_dpll_resume,
+ 	.id_table = mlx5_dpll_id_table,
+ };
+-
+ static int __init mlx5_dpll_init(void)
+ {
+ 	return auxiliary_driver_register(&mlx5_dpll_driver);
+diff -urpN ../linux-6.10.8/include/linux/netdevice.h ./linux-6.10.8/include/linux/netdevice.h
+--- ../linux-6.10.8/include/linux/netdevice.h	2024-09-04 20:30:16.000000000 +0900
++++ ./linux-6.10.8/include/linux/netdevice.h	2024-11-01 13:41:25.672162517 +0900
+@@ -3240,7 +3240,19 @@ struct softnet_data {
+ 	struct softnet_data	*rps_ipi_next;
+ 	unsigned int		cpu;
+ 	unsigned int		input_queue_tail;
++
++
+ #endif
++    //[HEMA] Define packet steering ops
++    struct pkt_steer_ops *pkt_steer_ops;
++    //=================================
++	
++	//[HEMA] Additional Stats
++	unsigned int input_queue_dequeue;
++	unsigned int input_queue_pkts;
++	unsigned int ipi_scheduled;
++	//==========================
++
+ 	struct sk_buff_head	input_pkt_queue;
+ 	struct napi_struct	backlog;
+ 
+@@ -3256,6 +3268,7 @@ struct softnet_data {
+ 
+ DECLARE_PER_CPU_ALIGNED(struct softnet_data, softnet_data);
+ 
++
+ static inline int dev_recursion_level(void)
+ {
+ 	return this_cpu_read(softnet_data.xmit.recursion);
+diff -urpN ../linux-6.10.8/include/net/hotdata.h ./linux-6.10.8/include/net/hotdata.h
+--- ../linux-6.10.8/include/net/hotdata.h	2024-09-04 20:30:16.000000000 +0900
++++ ./linux-6.10.8/include/net/hotdata.h	2024-10-22 13:42:48.201742993 +0900
+@@ -41,6 +41,10 @@ struct net_hotdata {
+ 	int			sysctl_max_skb_frags;
+ 	int			sysctl_skb_defer_max;
+ 	int			sysctl_mem_pcpu_rsv;
++    //[HEMA] packet steering protocol
++    struct pkt_steer_ops *pkt_steer_ops;
++    //==============================
++
+ };
+ 
+ #define inet_ehash_secret	net_hotdata.tcp_protocol.secret
+diff -urpN ../linux-6.10.8/include/net/pkt_steer_ops.h ./linux-6.10.8/include/net/pkt_steer_ops.h
+--- ../linux-6.10.8/include/net/pkt_steer_ops.h	1970-01-01 09:00:00.000000000 +0900
++++ ./linux-6.10.8/include/net/pkt_steer_ops.h	2024-10-22 19:17:46.672168329 +0900
+@@ -0,0 +1,21 @@
++#ifndef _NET_PKT_STEER_OPS_H
++#define _NET_PKT_STEER_OPS_H
++
++#include <net/rps.h>
++#include <linux/spinlock.h>
++
++//[HEMA] Simplistic Interface for testing purposes
++struct pkt_steer_ops{
++	int (*get_rps_cpu)(struct net_device*, struct sk_buff*, struct rps_dev_flow**);
++	struct rps_dev_flow* (*set_rps_cpu)(struct net_device*, struct sk_buff*, struct rps_dev_flow*, u16);
++	void (*mark_as_busy)(int tcpu);
++	void(*mark_as_idle)(int tcpu);
++};
++
++
++extern struct pkt_steer_ops pkt_standard_ops;
++
++//================================================
++
++
++#endif /* _NET_PKT_STEER_OPS_H */
+diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
+--- ../linux-6.10.8/net/core/dev.c	2024-09-04 20:30:16.000000000 +0900
++++ ./linux-6.10.8/net/core/dev.c	2024-11-11 14:20:18.858616971 +0900
+@@ -162,6 +162,7 @@
+ #include "dev.h"
+ #include "net-sysfs.h"
+ 
++
+ static DEFINE_SPINLOCK(ptype_lock);
+ struct list_head ptype_base[PTYPE_HASH_SIZE] __read_mostly;
+ 
+@@ -4473,7 +4474,6 @@ static inline void ____napi_schedule(str
+ 				     struct napi_struct *napi)
+ {
+ 	struct task_struct *thread;
+-
+ 	lockdep_assert_irqs_disabled();
+ 
+ 	if (test_bit(NAPI_STATE_THREADED, &napi->state)) {
+@@ -4565,6 +4565,9 @@ set_rps_cpu(struct net_device *dev, stru
+ static int get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
+ 		       struct rps_dev_flow **rflowp)
+ {
++	//[HEMA] Add local variables
++	struct softnet_data *sd;
++	//===========================
+ 	const struct rps_sock_flow_table *sock_flow_table;
+ 	struct netdev_rx_queue *rxqueue = dev->_rx;
+ 	struct rps_dev_flow_table *flow_table;
+@@ -4599,6 +4602,9 @@ static int get_rps_cpu(struct net_device
+ 		goto done;
+ 
+ 	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
++	//[HEMA] Get sd to access pkt steering ops
++	sd = &per_cpu(softnet_data, smp_processor_id());
++	//=======================================
+ 	if (flow_table && sock_flow_table) {
+ 		struct rps_dev_flow *rflow;
+ 		u32 next_cpu;
+@@ -4635,7 +4641,11 @@ static int get_rps_cpu(struct net_device
+ 		     ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
+ 		      rflow->last_qtail)) >= 0)) {
+ 			tcpu = next_cpu;
+-			rflow = set_rps_cpu(dev, skb, rflow, next_cpu);
++			//[HEMA] Replace with interface
++			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, next_cpu);
++			//[ORIGINAL]
++			//rflow = set_rps_cpu(dev, skb, rflow, next_cpu);
++			//=============================================
+ 		}
+ 
+ 		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
+@@ -4740,6 +4750,8 @@ static void napi_schedule_rps(struct sof
+ 			return;
+ 		}
+ 
++		sd->ipi_scheduled++;
++
+ 		sd->rps_ipi_next = mysd->rps_ipi_list;
+ 		mysd->rps_ipi_list = sd;
+ 
+@@ -4844,8 +4856,13 @@ static int enqueue_to_backlog(struct sk_
+ 			 * non atomic operation as we own the queue lock.
+ 			 */
+ 			if (!__test_and_set_bit(NAPI_STATE_SCHED,
+-						&sd->backlog.state))
++						&sd->backlog.state)){
+ 				napi_schedule_rps(sd);
++			}
++
++			//[HEMA] Mark as busy since packets will be enqueued on the input_pkt_queue
++			if(sd->pkt_steer_ops->mark_as_busy)
++				sd->pkt_steer_ops->mark_as_busy(cpu);
+ 		}
+ 		__skb_queue_tail(&sd->input_pkt_queue, skb);
+ 		tail = rps_input_queue_tail_incr(sd);
+@@ -5136,10 +5153,14 @@ static int netif_rx_internal(struct sk_b
+ 	if (static_branch_unlikely(&rps_needed)) {
+ 		struct rps_dev_flow voidflow, *rflow = &voidflow;
+ 		int cpu;
++		//[HEMA] Get softnet data of this core
++		struct softnet_data *sd = &per_cpu(softnet_data, smp_processor_id());
++		//====================================
+ 
+ 		rcu_read_lock();
+-
+-		cpu = get_rps_cpu(skb->dev, skb, &rflow);
++		//[HEMA] Replace with interface
++		cpu = sd->pkt_steer_ops->get_rps_cpu(skb->dev, skb, &rflow);
++		//====================================
+ 		if (cpu < 0)
+ 			cpu = smp_processor_id();
+ 
+@@ -5813,7 +5834,10 @@ static int netif_receive_skb_internal(st
+ #ifdef CONFIG_RPS
+ 	if (static_branch_unlikely(&rps_needed)) {
+ 		struct rps_dev_flow voidflow, *rflow = &voidflow;
+-		int cpu = get_rps_cpu(skb->dev, skb, &rflow);
++		//[HEMA] Apply packet steering interface
++		struct softnet_data *sd = &per_cpu(softnet_data, smp_processor_id());
++		int cpu = sd->pkt_steer_ops->get_rps_cpu(skb->dev, skb, &rflow);
++		//========================================
+ 
+ 		if (cpu >= 0) {
+ 			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
+@@ -5831,6 +5855,9 @@ void netif_receive_skb_list_internal(str
+ {
+ 	struct sk_buff *skb, *next;
+ 	struct list_head sublist;
++	//[HEMA] local variables
++	struct softnet_data *sd;
++	//=======================
+ 
+ 	INIT_LIST_HEAD(&sublist);
+ 	list_for_each_entry_safe(skb, next, head, list) {
+@@ -5844,10 +5871,17 @@ void netif_receive_skb_list_internal(str
+ 
+ 	rcu_read_lock();
+ #ifdef CONFIG_RPS
++	//[HEMA] Get softnet data of this core
++	sd = &per_cpu(softnet_data, smp_processor_id());
++	//====================================
+ 	if (static_branch_unlikely(&rps_needed)) {
+ 		list_for_each_entry_safe(skb, next, head, list) {
+ 			struct rps_dev_flow voidflow, *rflow = &voidflow;
+-			int cpu = get_rps_cpu(skb->dev, skb, &rflow);
++			//[HEMA] Replace with interface
++			int cpu = sd->pkt_steer_ops->get_rps_cpu(skb->dev, skb, &rflow);
++			//[ORIGINAL]
++			//int cpu = get_rps_cpu(skb->dev, skb, &rflow);
++			//===================================
+ 
+ 			if (cpu >= 0) {
+ 				/* Will be handled, remove from list */
+@@ -6028,7 +6062,7 @@ static void net_rps_action_and_irq_enabl
+ 		sd->rps_ipi_list = NULL;
+ 
+ 		local_irq_enable();
+-
++		
+ 		/* Send pending IPI's to kick RPS processing on remote cpus. */
+ 		net_rps_send_ipi(remsd);
+ 	} else
+@@ -6059,6 +6093,13 @@ static int process_backlog(struct napi_s
+ 		net_rps_action_and_irq_enable(sd);
+ 	}
+ 
++	//[HEMA] Put this napi on the list of active napi sessions
++	
++	//Removed. Reason: The kernel does not define the core as busy when it is in process_backlog,but rather when it has pkts queued on input_pkt_queue
++	//if(sd->pkt_steer_ops->mark_as_busy)
++	//	sd->pkt_steer_ops->mark_as_busy();
++	//========================================================
++
+ 	napi->weight = READ_ONCE(net_hotdata.dev_rx_weight);
+ 	while (again) {
+ 		struct sk_buff *skb;
+@@ -6069,7 +6110,9 @@ static int process_backlog(struct napi_s
+ 			rcu_read_unlock();
+ 			if (++work >= quota) {
+ 				rps_input_queue_head_add(sd, work);
+-				return work;
++				//[HEMA] Funnel this into out part, instead of direct return
++				goto out;
++				//==========================================================
+ 			}
+ 
+ 		}
+@@ -6086,15 +6129,27 @@ static int process_backlog(struct napi_s
+ 			 */
+ 			napi->state &= NAPIF_STATE_THREADED;
+ 			again = false;
++
+ 		} else {
+ 			skb_queue_splice_tail_init(&sd->input_pkt_queue,
+ 						   &sd->process_queue);
++			sd->input_queue_dequeue++;
++			sd->input_queue_pkts += skb_queue_len_lockless(&sd->process_queue);
+ 		}
+ 		backlog_unlock_irq_enable(sd);
+ 	}
+ 
+ 	if (work)
+ 		rps_input_queue_head_add(sd, work);
++//[HEMA] Define new out part to remove from list
++out:
++	//Removed. Reason: The kernel does not define the core as idle when it exits process_backlog,but rather when it has no pkts queued on input_pkt_queue
++	//if(sd->pkt_steer_ops->mark_as_idle)
++	//	sd->pkt_steer_ops->mark_as_idle();
++//==============================================
++	if(sd->pkt_steer_ops->mark_as_idle)
++		sd->pkt_steer_ops->mark_as_idle(smp_processor_id());
++
+ 	return work;
+ }
+ 
+@@ -6879,6 +6934,9 @@ static __latent_entropy void net_rx_acti
+ start:
+ 	sd->in_net_rx_action = true;
+ 	local_irq_disable();
++	//[HEMA] Update ops
++	sd->pkt_steer_ops = READ_ONCE(net_hotdata.pkt_steer_ops);
++	//=================
+ 	list_splice_init(&sd->poll_list, &list);
+ 	local_irq_enable();
+ 
+@@ -11883,6 +11941,16 @@ static struct smp_hotplug_thread backlog
+ 	.setup			= backlog_napi_setup,
+ };
+ 
++//[HEMA] Standard Packet Steering Ops
++struct pkt_steer_ops pkt_standard_ops = {
++	.get_rps_cpu = get_rps_cpu,
++	.set_rps_cpu = set_rps_cpu,
++	.mark_as_busy = NULL,
++	.mark_as_idle = NULL
++};
++EXPORT_SYMBOL(pkt_standard_ops);
++//===================================
++
+ /*
+  *       This is called single threaded during boot, so no need
+  *       to take the rtnl semaphore.
+@@ -11904,6 +11972,11 @@ static int __init net_dev_init(void)
+ 	for (i = 0; i < PTYPE_HASH_SIZE; i++)
+ 		INIT_LIST_HEAD(&ptype_base[i]);
+ 
++	//[HEMA] Set standard ops for packet steering
++	net_hotdata.pkt_steer_ops = &pkt_standard_ops;
++	//===========================================
++
++
+ 	if (register_pernet_subsys(&netdev_net_ops))
+ 		goto out;
+ 
+@@ -11927,7 +12000,12 @@ static int __init net_dev_init(void)
+ #ifdef CONFIG_RPS
+ 		INIT_CSD(&sd->csd, rps_trigger_softirq, sd);
+ 		sd->cpu = i;
++
+ #endif
++		//[HEMA] Init ops in softnet_data
++		sd->pkt_steer_ops = &pkt_standard_ops;
++		//===============================
++
+ 		INIT_CSD(&sd->defer_csd, trigger_rx_softirq, sd);
+ 		spin_lock_init(&sd->defer_lock);
+ 
+diff -urpN ../linux-6.10.8/net/core/dev.h ./linux-6.10.8/net/core/dev.h
+--- ../linux-6.10.8/net/core/dev.h	2024-09-04 20:30:16.000000000 +0900
++++ ./linux-6.10.8/net/core/dev.h	2024-10-22 13:41:38.911767036 +0900
+@@ -6,6 +6,10 @@
+ #include <linux/rwsem.h>
+ #include <linux/netdevice.h>
+ 
++//[HEMA]
++#include <net/pkt_steer_ops.h>
++//======================================
++
+ struct net;
+ struct netlink_ext_ack;
+ struct cpumask;
+diff -urpN ../linux-6.10.8/net/core/net-procfs.c ./linux-6.10.8/net/core/net-procfs.c
+--- ../linux-6.10.8/net/core/net-procfs.c	2024-09-04 20:30:16.000000000 +0900
++++ ./linux-6.10.8/net/core/net-procfs.c	2024-11-01 13:42:05.334694920 +0900
+@@ -146,7 +146,7 @@ static int softnet_seq_show(struct seq_f
+ 		   "%08x %08x\n",
+ 		   sd->processed, atomic_read(&sd->dropped),
+ 		   sd->time_squeeze, 0,
+-		   0, 0, 0, 0, /* was fastroute */
++		   sd->ipi_scheduled, sd->input_queue_dequeue, sd->input_queue_pkts, 0, /* was fastroute */
+ 		   0,	/* was cpu_collision */
+ 		   sd->received_rps, flow_limit_count,
+ 		   input_qlen + process_qlen, (int)seq->index,

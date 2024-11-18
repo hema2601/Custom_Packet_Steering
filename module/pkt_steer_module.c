@@ -45,6 +45,9 @@ DEFINE_PER_CPU(struct my_ops_stats, pkt_steer_stats);
 #define RPS 3
 #define PREV 4
 
+#define MY_LIST_HEAD 0
+#define MY_LIST_TAIL 1
+
 static int choose_backup_core __read_mostly = PREV;
 
 module_param(choose_backup_core, int, 0644);
@@ -54,6 +57,11 @@ static int custom_toggle __read_mostly = 1;
 
 module_param(custom_toggle, int, 0644);
 MODULE_PARM_DESC(custom_toggle, "Switch between custom and normal packet steering, Normal = 0, Custom = 1");
+
+static int list_position __read_mostly = MY_LIST_HEAD;
+
+module_param(list_position, int, 0644);
+MODULE_PARM_DESC(list_position, "Decide whether to find new busy cores from the head or from the tail of the busy list, Head = 0, Tail = 1");
 
 static struct rps_dev_flow *this_set_cpu(struct net_device *dev, struct sk_buff *skb,
 		       struct rps_dev_flow *rflow, u16 next_cpu){
@@ -175,8 +183,9 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		tcpu = rflow->cpu;
 
 
-		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
-				(skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
+		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) 
+				|| !test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
+				|| (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
 				//remove check for process_queue. Reason: The interrupt decision is made base don only input_pkt_queue
 				 /*&& skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue)*/)) {
 
@@ -206,7 +215,11 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 			spin_lock(&busy_backlog_lock);
 			if(!list_empty(&rps_busy_backlog)){
 				struct busy_backlog_item *item;
-				item = list_first_entry_or_null(&rps_busy_backlog, struct busy_backlog_item, list);
+				if(list_position == MY_LIST_HEAD)
+					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
+				else 
+					item = list_last_entry(&rps_busy_backlog, struct busy_backlog_item, list);
+
 				if(item){
 					stats->assignedToBusy++;
 					tcpu = item->cpu;
