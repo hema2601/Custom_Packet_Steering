@@ -5,13 +5,17 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/skbuff.h>
+#include <linux/timer.h>
+#include <linux/jiffies.h>
 
 #include <net/pkt_steer_ops.h>
 #include <net/rps.h>
 #include <net/netdev_rx_queue.h>
 #include <linux/cpu_rmap.h>
 #include <linux/percpu.h>
-#include <linux/moduleparam.h> 
+#include <linux/moduleparam.h>
+//#include <linux/sched.h>
+#include "/home/hema/Custom_Packet_Steering/linux-6.10.8/kernel/sched/sched.h"
 
 
 DEFINE_SPINLOCK(busy_backlog_lock);
@@ -38,12 +42,15 @@ struct my_ops_stats{
 	int choseInvalid;
 };
 
+static int num_curr_cpus = 1;
+
 DEFINE_PER_CPU(struct my_ops_stats, pkt_steer_stats);
 
 #define APP 1
 #define CURR 2
 #define RPS 3
-#define PREV 4
+#define LB 4
+#define PREV 5
 
 #define MY_LIST_HEAD 0
 #define MY_LIST_TAIL 1
@@ -51,7 +58,7 @@ DEFINE_PER_CPU(struct my_ops_stats, pkt_steer_stats);
 static int choose_backup_core __read_mostly = PREV;
 
 module_param(choose_backup_core, int, 0644);
-MODULE_PARM_DESC(choose_backup_core, "Decide Core when there are no busy cores: Application Core(1), Current Core(2), RPS(3), Previous(4)");
+MODULE_PARM_DESC(choose_backup_core, "Decide Core when there are no busy cores: Application Core(1), Current Core(2), RPS(3), Load Balancing(4), Previous(5)");
 
 static int custom_toggle __read_mostly = 1;
 
@@ -62,6 +69,16 @@ static int list_position __read_mostly = MY_LIST_HEAD;
 
 module_param(list_position, int, 0644);
 MODULE_PARM_DESC(list_position, "Decide whether to find new busy cores from the head or from the tail of the busy list, Head = 0, Tail = 1");
+
+static int base_cpu __read_mostly = 1;
+
+module_param(base_cpu, int, 0644);
+MODULE_PARM_DESC(base_cpu, "Define the beginning of the CPUs that IAPS can scale to");
+
+static int max_cpus __read_mostly = 7;
+
+module_param(max_cpus, int, 0644);
+MODULE_PARM_DESC(max_cpus, "Define the maximum number of CPUs IAPS can scale to");
 
 static struct rps_dev_flow *this_set_cpu(struct net_device *dev, struct sk_buff *skb,
 		       struct rps_dev_flow *rflow, u16 next_cpu){
@@ -207,6 +224,8 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					if (map) 
 						tcpu = map->cpus[reciprocal_scale(hash, map->len)];
 					break;
+				case LB:
+					tcpu = (hash % num_curr_cpus) + base_cpu;
 				case PREV:
 				default:
 					break;
@@ -472,6 +491,52 @@ static int create_proc(void){
 }
 
 
+static struct timer_list lb_timer;
+
+static inline unsigned long cpu_util(int cpu){
+
+	return cpu_util_cfs(cpu);
+}
+
+unsigned long threshold_up = 500;
+unsigned long threshold_low = 200;
+
+
+static void iaps_load_balancer(struct timer_list *timer){
+
+	unsigned long avg_util = 0;
+
+	printk("Timer Triggered!\n");
+
+
+	//Check average utilization
+	for(int i = 0; i < num_curr_cpus; i++){
+		unsigned long util = cpu_util(base_cpu + i);
+
+		printk("CPU %d Util: %lu\n", base_cpu + i, util);
+
+		avg_util += util;
+	}
+
+	avg_util /= num_curr_cpus;
+
+	printk("Avergae Usage: %lu\n", avg_util);
+
+	//update CPU count
+
+	if(avg_util > threshold_up && num_curr_cpus < max_cpus)
+		num_curr_cpus++;
+	
+	if(avg_util < threshold_low && num_curr_cpus > 1)
+		num_curr_cpus--;
+
+
+
+
+	// Rearm Timer
+	mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
+
+}
 
 static int __init init_pkt_steer_mod(void){
 	int ret;
@@ -499,6 +564,10 @@ static int __init init_pkt_steer_mod(void){
 		return ret;
 	}
 
+	//activate timer
+	timer_setup(&lb_timer, iaps_load_balancer, 0);
+	mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
+
 	WRITE_ONCE(net_hotdata.pkt_steer_ops, &my_ops);
 
 	return 0;
@@ -513,6 +582,10 @@ static void __exit exit_pkt_steer_mod(void){
 	}
 
 	remove_proc_entry("pkt_steer_module", NULL);
+
+	//remove timer
+	del_timer(&lb_timer);
+
 
 	WRITE_ONCE(net_hotdata.pkt_steer_ops, &pkt_standard_ops);
 	
