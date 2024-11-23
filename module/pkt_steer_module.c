@@ -137,6 +137,51 @@ out:
 
 }
 
+static int perform_rfs(struct net_device *dev, struct sk_buff *skb){
+	//[HEMA] Add local variables
+	struct softnet_data *sd;
+	//===========================
+	const struct rps_sock_flow_table *sock_flow_table;
+	struct netdev_rx_queue *rxqueue = dev->_rx;
+	struct rps_dev_flow_table *flow_table;
+	int cpu = -1;
+	u32 hash;
+
+
+	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
+
+	flow_table = rcu_dereference(rxqueue->rps_flow_table);
+	if (!flow_table)
+		goto done;
+
+	skb_reset_network_header(skb);
+	hash = skb_get_hash(skb);
+	if (!hash)
+		goto done;
+
+	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
+	//[HEMA] Get sd to access pkt steering ops
+	sd = &per_cpu(softnet_data, smp_processor_id());
+	//=======================================
+	if (flow_table && sock_flow_table) {
+		u32 next_cpu;
+		u32 ident;
+
+		/* First check into global flow table if there is a match.
+		 * This READ_ONCE() pairs with WRITE_ONCE() from rps_record_sock_flow().
+		 */
+		ident = READ_ONCE(sock_flow_table->ents[hash & sock_flow_table->mask]);
+		if ((ident ^ hash) & ~net_hotdata.rps_cpu_mask)
+			goto done;
+
+		next_cpu = ident & net_hotdata.rps_cpu_mask;
+	}
+
+done:
+	return cpu;
+
+}
+
 static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
 
@@ -144,7 +189,6 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	struct softnet_data *sd;
 	struct my_ops_stats *stats;
 	//===========================
-	const struct rps_sock_flow_table *sock_flow_table;
 	struct netdev_rx_queue *rxqueue = dev->_rx;
 	struct rps_dev_flow_table *flow_table;
 	struct rps_map *map;
@@ -174,7 +218,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
 
-	flow_table = rcu_dereference(rxqueue->rps_flow_table);
+	flow_table = rcu_dereference(iaps_flow_table);
 	map = rcu_dereference(rxqueue->rps_map);
 	if (!flow_table && !map)
 		goto done;
@@ -184,28 +228,12 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	if (!hash)
 		goto done;
 
-	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
 	//[HEMA] Get sd to access pkt steering ops
 	sd = &per_cpu(softnet_data, this_cpu);
 	//=======================================
-	if (flow_table && sock_flow_table) {
+	if (flow_table) {
 		struct rps_dev_flow *rflow;
-		u32 next_cpu;
-		u32 ident;
 
-		/* First check into global flow table if there is a match.
-		 * This READ_ONCE() pairs with WRITE_ONCE() from rps_record_sock_flow().
-		 */
-		ident = READ_ONCE(sock_flow_table->ents[hash & sock_flow_table->mask]);
-		if ((ident ^ hash) & ~net_hotdata.rps_cpu_mask)
-			goto try_rps;
-
-		// CPU where last receive was done
-		next_cpu = ident & net_hotdata.rps_cpu_mask;
-
-		/* OK, now we know there is a match,
-		 * we can look at the local (per receive queue) flow table
-		 */
 		rflow = &flow_table->flows[hash & flow_table->mask];
 		tcpu = rflow->cpu;
 
@@ -224,15 +252,19 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 			//[TODO] Decide backup core
 			switch(choose_backup_core){
-				case APP:
-					tcpu = next_cpu;
-					break;
 				case CURR:
 					tcpu = this_cpu;
 					break;
 				case RPS:
 					if (map) 
 						tcpu = map->cpus[reciprocal_scale(hash, map->len)];
+					break;
+				case APP:
+					tcpu = perform_rfs(dev, skb);
+					if(tcpu != -1)
+						break;
+					WARN_ON(1);
+					tcpu = (hash % num_curr_cpus) + base_cpu;
 					break;
 				case LB:
 					tcpu = (hash % num_curr_cpus) + base_cpu;
@@ -273,7 +305,6 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		}
 	}
 
-try_rps:
 	//Fall back on RPS
 	stats->fallback++;
 	if (map) {
@@ -287,6 +318,7 @@ try_rps:
 done:
 	if(cpu == this_cpu)
 		stats->targetIsSelf++;
+
 	return cpu;
 
 
