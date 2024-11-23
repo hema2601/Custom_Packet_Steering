@@ -80,6 +80,16 @@ static int max_cpus __read_mostly = 7;
 module_param(max_cpus, int, 0644);
 MODULE_PARM_DESC(max_cpus, "Define the maximum number of CPUs IAPS can scale to");
 
+static unsigned long flow_table_size __read_mostly = 32768;
+
+module_param(flow_table_size, ulong, 0644);
+MODULE_PARM_DESC(flow_table_size, "Define the number of maximum flows for IAPS");
+
+
+
+static struct rps_dev_flow_table __rcu *iaps_flow_table;
+
+
 static struct rps_dev_flow *this_set_cpu(struct net_device *dev, struct sk_buff *skb,
 		       struct rps_dev_flow *rflow, u16 next_cpu){
 
@@ -538,6 +548,65 @@ static void iaps_load_balancer(struct timer_list *timer){
 
 }
 
+//Copied from Kernel
+static void rps_dev_flow_table_release(struct rcu_head *rcu)
+{
+	struct rps_dev_flow_table *table = container_of(rcu,
+	    struct rps_dev_flow_table, rcu);
+	vfree(table);
+}
+
+static int create_flow_table(int destroy){
+
+	unsigned long mask, count = (destroy) ? 0 : flow_table_size;
+	struct rps_dev_flow_table *table, *old_table;
+	static DEFINE_SPINLOCK(rps_dev_flow_lock);
+
+	if (count) {
+		mask = count - 1;
+		/* mask = roundup_pow_of_two(count) - 1;
+		 * without overflows...
+		 */
+		while ((mask | (mask >> 1)) != mask)
+			mask |= (mask >> 1);
+		/* On 64 bit arches, must check mask fits in table->mask (u32),
+		 * and on 32bit arches, must check
+		 * RPS_DEV_FLOW_TABLE_SIZE(mask + 1) doesn't overflow.
+		 */
+#if BITS_PER_LONG > 32
+		if (mask > (unsigned long)(u32)mask)
+			return -EINVAL;
+#else
+		if (mask > (ULONG_MAX - RPS_DEV_FLOW_TABLE_SIZE(1))
+				/ sizeof(struct rps_dev_flow)) {
+			/* Enforce a limit to prevent overflow */
+			return -EINVAL;
+		}
+#endif
+		table = vmalloc(RPS_DEV_FLOW_TABLE_SIZE(mask + 1));
+		if (!table)
+			return -ENOMEM;
+
+		table->mask = mask;
+		for (count = 0; count <= mask; count++)
+			table->flows[count].cpu = RPS_NO_CPU;
+	} else {
+		table = NULL;
+	}
+
+	spin_lock(&rps_dev_flow_lock);
+	old_table = rcu_dereference_protected(iaps_flow_table,
+			lockdep_is_held(&rps_dev_flow_lock));
+	rcu_assign_pointer(iaps_flow_table, table);
+	spin_unlock(&rps_dev_flow_lock);
+
+	if (old_table)
+		call_rcu(&old_table->rcu, rps_dev_flow_table_release);
+
+	return 0;
+
+}
+
 static int __init init_pkt_steer_mod(void){
 	int ret;
 	int i;
@@ -553,14 +622,22 @@ static int __init init_pkt_steer_mod(void){
 
 	}
 
+	ret = create_flow_table(0);
+	if(ret < 0){
+		printk(KERN_ERR "Failed to set up flow table for IAPS (%d)\n", ret);
+		return ret;
+	}
+
 	if(!list_empty(&rps_busy_backlog)){
 		printk(KERN_ERR "Busy Backlog still has entries. Abort.");
+		create_flow_table(1);
 		return -1;
 	}
 
 	ret = create_proc();
 	if(ret < 0){
 		printk(KERN_ERR "pkt_steer_module could not setup proc (%d)\n", ret);
+		create_flow_table(1);
 		return ret;
 	}
 
@@ -588,6 +665,8 @@ static void __exit exit_pkt_steer_mod(void){
 
 
 	WRITE_ONCE(net_hotdata.pkt_steer_ops, &pkt_standard_ops);
+		
+	create_flow_table(1);
 	
 }
 
