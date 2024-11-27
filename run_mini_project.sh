@@ -80,18 +80,12 @@ then
 	echo "Enable Custom (based on RFS)"
 	#make -C $current_path/module
 	#insmod $current_path/module/pkt_steer_module.ko
-	#$current_path/scripts/enable_rfs.sh $intf
-	$current_path/scripts/enable_rps.sh $intf $((core_start + num_queue)) $((core_num - num_queue))	
-    echo $backup_core > /sys/module/pkt_steer_module/parameters/choose_backup_core
-	echo $iaps_busy_list > /sys/module/pkt_steer_module/parameters/list_position
-	echo $((core_start + num_queue)) > /sys/module/pkt_steer_module/parameters/base_cpu
-	echo $((core_num - num_queue)) > /sys/module/pkt_steer_module/parameters/max_cpus
+	$current_path/scripts/enable_rfs.sh $intf
+	$current_path/scripts/enable_rps.sh $intf $core_start $core_num
+	echo $backup_core > /sys/module/pkt_steer_module/parameters/choose_backup_core
 	echo 1 > /sys/module/pkt_steer_module/parameters/custom_toggle
-	type="IAPS"
 else
 	echo "Disable Custom"
-	echo 0 > /sys/module/pkt_steer_module/parameters/custom_toggle
-
 	#rmmod pkt_steer_module
 	if [[ "$rfs" == "0" ]]
 	then
