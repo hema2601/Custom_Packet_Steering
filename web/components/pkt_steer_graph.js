@@ -12,7 +12,7 @@ var PktSteer = {
 			    "transform": [
 				   {"filter":"datum.Total != 0"},
 				      {"filter":"datum.CPU >= 0 && datum.CPU <= 7"},
-					     {"filter":"datum.Exp == 'Custom1'"},
+					    // {"filter":"datum.Exp == 'Custom1'"},
 						    {"calculate": "datum.AssignedToBusy / datum.Total ", "as": "ToBusy"},
 							   {"calculate": "datum.NoBusyAvailable / datum.Total ", "as": "NotAvail"},
 							      {"calculate": "(datum.Total - datum.PrevInvalid - datum.PrevIdle) / datum.Total ", "as": "PreviousStillBusy"}

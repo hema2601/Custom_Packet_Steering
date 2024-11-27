@@ -6,8 +6,8 @@ var PpIPI = {
    "width":220,
    "height":220,
    "transform": [
-     {"filter":"datum.CPU >= 0 && datum.CPU <= 7"},
-	   {"filter":"datum.Exp == 'Custom1' || datum.Exp == 'RFS' || datum.Exp == 'RPS'"},
+     {"filter":"datum.CPU >= 2 && datum.CPU <= 7"},
+//	   {"filter":"datum.Exp == 'Custom1' || datum.Exp == 'RFS' || datum.Exp == 'RPS'"},
 	     {"calculate": "(datum['RPS Interrupts'] != 0) ? datum.Processed / datum['RPS Interrupts'] : 0", "as": "Packets Per IPI"},
 		   {"filter":"datum.Processed != 0"},
 		     {"calculate":"(datum.Exp == 'Custom1') ? 'IAPS': datum.Exp", "as":"Scheme"}

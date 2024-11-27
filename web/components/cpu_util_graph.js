@@ -23,7 +23,7 @@ var CPUUtil = {
 		"column": {"field": "Exp",  "type": "nominal"},
 		"row":{"field":"Rep"},
 		"x": {"field": "Conns", "type": "nominal", "sort":[]},
-		"xOffset":{"field":"CPU", "sort":{"field":"IP"}},
+		"xOffset":{"field":"CPU"},
 		"y": {"aggregate":"mean","field": "value", "type": "quantitative"},
 		"color": {"field": "key", "type": "nominal"}
 	}

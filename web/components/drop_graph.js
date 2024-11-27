@@ -7,7 +7,7 @@ var Drops = {
  "height":220,
  "transform": [
   //{"filter":"datum.CPU >= 0 && datum.CPU <= 7"},
-   {"filter":"datum.Exp == 'Custom1' || datum.Exp == 'RFS' || datum.Exp == 'RPS'"},
+  // {"filter":"datum.Exp == 'Custom1' || datum.Exp == 'RFS' || datum.Exp == 'RPS'"},
     {"calculate":"(datum.Exp == 'Custom1') ? 'IAPS': datum.Exp", "as":"Scheme"},
 	 {"filter":"datum.Type == 'dropped'"},
 	  {"calculate":"datum.After - datum.Before", "as":"value"}

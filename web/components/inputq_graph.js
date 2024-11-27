@@ -9,7 +9,7 @@ var InputQData = {
 		  {"calculate":"datum['InputQ Dequeued'] / datum['RPS Interrupts']", "as":"Dequeue per IPI"}
 
 		    ],
-			 "repeat":["InputQ Length", "Dequeue per IPI"],
+			 "repeat":["InputQ Length", "Dequeue per IPI", "Dropped"],
 			  "spec":{
 			   "mark": "bar",
 			    "encoding": {

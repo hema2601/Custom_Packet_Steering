@@ -14,9 +14,10 @@ conns=${7:-6}
 intf=${8:-ens4np0}
 iaps_busy_list=${9:-0}
 num_queue=${10:-8}
-core_start=${11:-0}
-core_num=${12:-8}
-time=${13:-10} 
+gro=${11:-1}
+core_start=${12:-0}
+core_num=${13:-8}
+time=${14:-10} 
 
 IPERF_BIN=iperf3
 
@@ -45,6 +46,7 @@ then
 else
 	echo "Disable RSS"
 	ethtool -L $intf combined 1
+	num_queue=1
 fi
 
 # Setup rfs/rps
@@ -52,7 +54,7 @@ if [[ "$rps" == "1" ]]
 then
 	#enable rps
 	echo "Enable RPS"
-	$current_path/scripts/enable_rps.sh $intf $core_start $core_num
+	$current_path/scripts/enable_rps.sh $intf $(( core_start + num_queue )) $((core_num - num_queue))
 	type="RPS"
 else
 	echo "Disable RPS"
@@ -78,10 +80,12 @@ then
 	echo "Enable Custom (based on RFS)"
 	#make -C $current_path/module
 	#insmod $current_path/module/pkt_steer_module.ko
-	$current_path/scripts/enable_rfs.sh $intf
-	$current_path/scripts/enable_rps.sh $intf $core_start $core_num
-	echo $backup_core > /sys/module/pkt_steer_module/parameters/choose_backup_core
+	#$current_path/scripts/enable_rfs.sh $intf
+	$current_path/scripts/enable_rps.sh $intf $((core_start + num_queue)) $((core_num - num_queue))	
+    echo $backup_core > /sys/module/pkt_steer_module/parameters/choose_backup_core
 	echo $iaps_busy_list > /sys/module/pkt_steer_module/parameters/list_position
+	echo $((core_start + num_queue)) > /sys/module/pkt_steer_module/parameters/base_cpu
+	echo $((core_num - num_queue)) > /sys/module/pkt_steer_module/parameters/max_cpus
 	echo 1 > /sys/module/pkt_steer_module/parameters/custom_toggle
 	type="IAPS"
 else
@@ -95,6 +99,13 @@ else
 	fi
 fi
 
+if [[ "$gro" == "1" ]]
+then
+	ethtool -K $intf gro on
+else
+	ethtool -K $intf gro off
+fi
+
 
 	
 # Set Mappings
@@ -104,7 +115,7 @@ $current_path/scripts/set_affinity.sh $intf $core_start
 $current_path/scripts/before.sh $intf
 
 # Run iperf3
-taskset -c "$core_start-$((core_start + core_num - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} > /dev/null"&
+taskset -c "$core_start-$((core_start + core_num - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M 100 > /dev/null"&
 IPERF_PID=$!
 
 # Perform Latency Test 
@@ -127,12 +138,12 @@ $current_path/scripts/after.sh $exp_name $intf
 mv $current_path/iperf.json $current_path/data/$exp_name/
 
 # Apply File Transformation
-python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT
+python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER
 
-if [[ "$custom" == "1" ]]
-then
-python3 file_formatter.py $exp_name PKT_STEER
+#if [[ "$custom" == "1" ]]
+#then
+#python3 file_formatter.py $exp_name PKT_STEER
 #rmmod pkt_steer_module
-fi 
+#fi 
 
 
