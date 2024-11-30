@@ -27,7 +27,7 @@ for i in range(reps):
 
 
 
-files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json"]
+files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json", "perf.json"]
 
 os.mkdir("./summaries")
 

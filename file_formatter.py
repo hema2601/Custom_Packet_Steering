@@ -12,8 +12,9 @@ class Filetype(Enum):
     SOFTNET     = 5
     PKT_STEER   = 6
     PROC_STAT   = 7
+    PERF        = 8
 
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT'])
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF'])
 
 
 class JsonGenerator:
@@ -348,6 +349,70 @@ class PROC_STATGen(JsonGenerator):
                 elem["Guest"] = int(parts[9])
                 elem["Guest_Nice"] = int(parts[10])
                 self.json_dict.append(elem)
+class PERFGen(JsonGenerator):
+
+    def generate_json(self):
+        # pass
+        print("Generate perf.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        contributions = {}
+        not_found = []
+        symbol_map = {}
+        total_contrib = 0.
+        unaccounted_contrib = 0.
+        
+        # Read the symbols map file
+        with open("symbol_mapping.tsv", "r") as f:
+            for line in f.readlines():
+                comps = line.split()
+                if len(comps) == 2:
+                    symbol, typ = line.split()
+                    symbol_map[symbol] = typ
+                    if typ not in contributions:
+                        contributions[typ] = 0.
+        
+        # Process the perf output to calculate breakdown
+        for line in self.f:
+            if total_contrib < 95:
+                comps = line.split()
+                if len(comps) == 5 and comps[3] == "[k]":
+                    func = comps[4].split(".")[0]
+                    contrib = float(comps[0][:-1])
+                    total_contrib += contrib
+                    if func in symbol_map:
+                        typ = symbol_map[func]
+                        contributions[typ] += contrib
+                    elif comps[2] == "[pkt_steer_module]":
+                        contributions['netdev'] += contrib
+                    else:
+                        if contrib > 0.01:
+                            not_found.append(func)
+                        unaccounted_contrib += contrib
+            else:
+                break
+        print(total_contrib)
+        print(unaccounted_contrib)
+        print(contributions)
+        for x in not_found:
+            print(x)
+
+        elem = dict()
+        elem['Total'] = total_contrib
+        elem['Unaccounted'] = unaccounted_contrib
+        for typ in contributions.keys():
+            elem[typ] = contributions[typ]
+
+        print(elem)
+
+
+        self.json_dict.append(elem)
+
+        #return total_contrib, unaccounted_contrib, contributions, not_found
+
 
 
 argc = len(sys.argv)

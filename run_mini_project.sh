@@ -21,6 +21,8 @@ time=${14:-10}
 
 IPERF_BIN=iperf3
 
+PERF_BIN=$current_path/linux-6.10.8/tools/perf/perf
+
 type="Unknown"
 
 if command -v iperf3_napi &> /dev/null
@@ -114,6 +116,10 @@ $current_path/scripts/set_affinity.sh $intf $core_start
 # Get "Before" Values
 $current_path/scripts/before.sh $intf
 
+# Run perf
+$PERF_BIN record -C $core_start-$((core_start + core_num - 1)) -o $current_path/perf.json &
+PERF_PID=$!
+
 # Run iperf3
 taskset -c "$core_start-$((core_start + core_num - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M 100 > /dev/null"&
 IPERF_PID=$!
@@ -130,15 +136,19 @@ fi
 # Wait for iperf3 to exit [Optional]
 tail --pid=$IPERF_PID -f /dev/null
 echo "Iperf ended"
+kill $PERF_PID
+tail --pid=$PERF_PID -f /dev/null
 
 # Get "After" Values
 $current_path/scripts/after.sh $exp_name $intf
 
-#perf json to data folder
+#move iperf and perf json to data folder
 mv $current_path/iperf.json $current_path/data/$exp_name/
+$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf.json > $current_path/data/$exp_name/perf.json
+rm $current_path/perf.json
 
 # Apply File Transformation
-python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER
+python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER PERF
 
 #if [[ "$custom" == "1" ]]
 #then
