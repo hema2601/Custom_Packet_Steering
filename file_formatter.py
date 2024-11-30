@@ -359,12 +359,16 @@ class PERFGen(JsonGenerator):
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
+
+
+
         contributions = {}
         not_found = []
         symbol_map = {}
         total_contrib = 0.
         unaccounted_contrib = 0.
-        
+        this_type = None
+        first = True
         # Read the symbols map file
         with open("symbol_mapping.tsv", "r") as f:
             for line in f.readlines():
@@ -377,8 +381,33 @@ class PERFGen(JsonGenerator):
         
         # Process the perf output to calculate breakdown
         for line in self.f:
+
+            comps = line.split()
+            if len(comps) == 2 and comps[0] == "TYPE":
+                if first is not True:
+                    # Save previous perf info
+                    elem = dict()
+                    elem['Type'] = this_type
+                    elem['Total'] = total_contrib
+                    elem['Unaccounted'] = unaccounted_contrib
+                    for typ in contributions.keys():
+                        elem[typ] = contributions[typ]
+                    print(elem)
+                    self.json_dict.append(elem)
+
+                # reinitialize
+                first = False
+                this_type = comps[1]
+                for x in contributions.keys():
+                    contributions[x] = 0.
+                not_found = []
+                total_contrib = 0.
+                unaccounted_contrib = 0.
+
+                # skip to next line
+                continue
+
             if total_contrib < 95:
-                comps = line.split()
                 if len(comps) == 5 and comps[3] == "[k]":
                     func = comps[4].split(".")[0]
                     contrib = float(comps[0][:-1])
@@ -393,23 +422,22 @@ class PERFGen(JsonGenerator):
                             not_found.append(func)
                         unaccounted_contrib += contrib
             else:
-                break
-        print(total_contrib)
-        print(unaccounted_contrib)
-        print(contributions)
-        for x in not_found:
-            print(x)
+                continue
+        # print(total_contrib)
+        # print(unaccounted_contrib)
+        # print(contributions)
+        # for x in not_found:
+        #     print(x)
 
         elem = dict()
+        elem['Type'] = this_type
         elem['Total'] = total_contrib
         elem['Unaccounted'] = unaccounted_contrib
         for typ in contributions.keys():
             elem[typ] = contributions[typ]
 
-        print(elem)
-
-
         self.json_dict.append(elem)
+
 
         #return total_contrib, unaccounted_contrib, contributions, not_found
 

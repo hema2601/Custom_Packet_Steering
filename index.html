@@ -12,6 +12,7 @@
 		<script src="web/components/pkt_steer_graph.js"></script>
 		<script src="web/components/tp_graph.js"></script>
 		<script src="web/components/inputq_graph.js"></script>
+		<script src="web/components/perf_graph.js"></script>
 	</head>
 	<body>
 
@@ -30,6 +31,7 @@
 		<div id="PktSteer"></div>
 		<div id="CPUUtil"></div>
 		<div id="InputQData"></div>
+		<div id="Perf"></div>
 
 		<script type="text/javascript">
 
@@ -91,6 +93,7 @@ function loadAllGraphs(path){
 	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI', '#InputQData'], [PpIPI, InputQData])
 	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'], [PktSteer])
 	fetchJSONData(path.concat("summary_proc_stat.json"), ['#CPUUtil'], [CPUUtil])
+	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'], [perf_graph])
 
 }
 
