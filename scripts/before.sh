@@ -12,5 +12,3 @@ cat /proc/stat > before_proc_stat.txt
 if test -f /proc/pkt_steer_module; then
 	cat /proc/pkt_steer_module > before_pkt_steer.txt
 fi
-
-

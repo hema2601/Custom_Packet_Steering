@@ -5,17 +5,13 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/skbuff.h>
-#include <linux/timer.h>
-#include <linux/jiffies.h>
 
-#include "/home/hema/mini_project_rfs/linux-6.10.8/include/net/pkt_steer_ops.h"
+#include <net/pkt_steer_ops.h>
 #include <net/rps.h>
 #include <net/netdev_rx_queue.h>
 #include <linux/cpu_rmap.h>
 #include <linux/percpu.h>
-#include <linux/moduleparam.h>
-//#include <linux/sched.h>
-#include "/home/hema/Custom_Packet_Steering/linux-6.10.8/kernel/sched/sched.h"
+#include <linux/moduleparam.h> 
 
 
 DEFINE_SPINLOCK(busy_backlog_lock);
@@ -42,23 +38,17 @@ struct my_ops_stats{
 	int choseInvalid;
 };
 
-static int num_curr_cpus = 1;
-
 DEFINE_PER_CPU(struct my_ops_stats, pkt_steer_stats);
 
 #define APP 1
 #define CURR 2
 #define RPS 3
-#define LB 4
-#define PREV 5
-
-#define MY_LIST_HEAD 0
-#define MY_LIST_TAIL 1
+#define PREV 4
 
 static int choose_backup_core __read_mostly = PREV;
 
 module_param(choose_backup_core, int, 0644);
-MODULE_PARM_DESC(choose_backup_core, "Decide Core when there are no busy cores: Application Core(1), Current Core(2), RPS(3), Load Balancing(4), Previous(5)");
+MODULE_PARM_DESC(choose_backup_core, "Decide Core when there are no busy cores: Application Core(1), Current Core(2), RPS(3), Previous(4)");
 
 static int custom_toggle __read_mostly = 1;
 
@@ -112,51 +102,6 @@ out:
 
 }
 
-static int perform_rfs(struct net_device *dev, struct sk_buff *skb){
-	//[HEMA] Add local variables
-	struct softnet_data *sd;
-	//===========================
-	const struct rps_sock_flow_table *sock_flow_table;
-	struct netdev_rx_queue *rxqueue = dev->_rx;
-	struct rps_dev_flow_table *flow_table;
-	int cpu = -1;
-	u32 hash;
-
-
-	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
-
-	flow_table = rcu_dereference(rxqueue->rps_flow_table);
-	if (!flow_table)
-		goto done;
-
-	skb_reset_network_header(skb);
-	hash = skb_get_hash(skb);
-	if (!hash)
-		goto done;
-
-	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
-	//[HEMA] Get sd to access pkt steering ops
-	sd = &per_cpu(softnet_data, smp_processor_id());
-	//=======================================
-	if (flow_table && sock_flow_table) {
-		u32 next_cpu;
-		u32 ident;
-
-		/* First check into global flow table if there is a match.
-		 * This READ_ONCE() pairs with WRITE_ONCE() from rps_record_sock_flow().
-		 */
-		ident = READ_ONCE(sock_flow_table->ents[hash & sock_flow_table->mask]);
-		if ((ident ^ hash) & ~net_hotdata.rps_cpu_mask)
-			goto done;
-
-		next_cpu = ident & net_hotdata.rps_cpu_mask;
-	}
-
-done:
-	return cpu;
-
-}
-
 static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
 
@@ -164,6 +109,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	struct softnet_data *sd;
 	struct my_ops_stats *stats;
 	//===========================
+	const struct rps_sock_flow_table *sock_flow_table;
 	struct netdev_rx_queue *rxqueue = dev->_rx;
 	struct rps_dev_flow_table *flow_table;
 	struct rps_map *map;
@@ -173,6 +119,8 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	u32 hash;
 
 	stats = &per_cpu(pkt_steer_stats, this_cpu);
+
+	//printk("this_get_cpu: Called");
 
 	stats->total++;
 
@@ -191,7 +139,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
 
-	flow_table = rcu_dereference(iaps_flow_table);
+	flow_table = rcu_dereference(rxqueue->rps_flow_table);
 	map = rcu_dereference(rxqueue->rps_map);
 	if (!flow_table && !map)
 		goto done;
@@ -201,19 +149,34 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	if (!hash)
 		goto done;
 
+	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
 	//[HEMA] Get sd to access pkt steering ops
 	sd = &per_cpu(softnet_data, this_cpu);
 	//=======================================
-	if (flow_table) {
+	if (flow_table && sock_flow_table) {
 		struct rps_dev_flow *rflow;
+		u32 next_cpu;
+		u32 ident;
 
+		/* First check into global flow table if there is a match.
+		 * This READ_ONCE() pairs with WRITE_ONCE() from rps_record_sock_flow().
+		 */
+		ident = READ_ONCE(sock_flow_table->ents[hash & sock_flow_table->mask]);
+		if ((ident ^ hash) & ~net_hotdata.rps_cpu_mask)
+			goto try_rps;
+
+		// CPU where last receive was done
+		next_cpu = ident & net_hotdata.rps_cpu_mask;
+
+		/* OK, now we know there is a match,
+		 * we can look at the local (per receive queue) flow table
+		 */
 		rflow = &flow_table->flows[hash & flow_table->mask];
 		tcpu = rflow->cpu;
 
 
-		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) 
-				|| !test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
-				|| (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
+		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
+				(skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
 				//remove check for process_queue. Reason: The interrupt decision is made base don only input_pkt_queue
 				 /*&& skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue)*/)) {
 
@@ -225,6 +188,9 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 			//[TODO] Decide backup core
 			switch(choose_backup_core){
+				case APP:
+					tcpu = next_cpu;
+					break;
 				case CURR:
 					tcpu = this_cpu;
 					break;
@@ -232,15 +198,6 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					if (map) 
 						tcpu = map->cpus[reciprocal_scale(hash, map->len)];
 					break;
-				case APP:
-					tcpu = perform_rfs(dev, skb);
-					if(tcpu != -1)
-						break;
-					WARN_ON(1);
-					tcpu = (hash % num_curr_cpus) + base_cpu;
-					break;
-				case LB:
-					tcpu = (hash % num_curr_cpus) + base_cpu;
 				case PREV:
 				default:
 					break;
@@ -249,11 +206,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 			spin_lock(&busy_backlog_lock);
 			if(!list_empty(&rps_busy_backlog)){
 				struct busy_backlog_item *item;
-				if(list_position == MY_LIST_HEAD)
-					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-				else 
-					item = list_last_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-
+				item = list_first_entry_or_null(&rps_busy_backlog, struct busy_backlog_item, list);
 				if(item){
 					stats->assignedToBusy++;
 					tcpu = item->cpu;
@@ -278,6 +231,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		}
 	}
 
+try_rps:
 	//Fall back on RPS
 	stats->fallback++;
 	if (map) {
@@ -291,41 +245,176 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 done:
 	if(cpu == this_cpu)
 		stats->targetIsSelf++;
-
 	return cpu;
 
 
 }
 
-static void this_before(void){
+static void this_before(int tcpu){
 
-	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, smp_processor_id());	
-
+	struct list_head *list = &(per_cpu(busy_backlog_item, tcpu).list);	
+	
     
 	spin_lock(&busy_backlog_lock);
-    list_add(&item->list, &rps_busy_backlog);
+	//printk("Adding to busy list");
+	if(list->prev == list)
+    	list_add(list, &rps_busy_backlog);
     spin_unlock(&busy_backlog_lock);
    
 }
 
-static void this_after(void){
+static void this_after(int tcpu){
 	
-	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, smp_processor_id());	
+	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, tcpu);	
 	
     spin_lock(&busy_backlog_lock);
+	//printk("Removing from busy list");
 	list_del_init(&item->list);
     spin_unlock(&busy_backlog_lock);
 
 }
 
+static int get_rps_cpu_copy(struct net_device *dev, struct sk_buff *skb,
+		struct rps_dev_flow **rflowp)
+{
+	//[HEMA] Add local variables
+	struct softnet_data *sd;
+	//===========================
+	const struct rps_sock_flow_table *sock_flow_table;
+	struct netdev_rx_queue *rxqueue = dev->_rx;
+	struct rps_dev_flow_table *flow_table;
+	struct rps_map *map;
+	int cpu = -1;
+	u32 tcpu;
+	u32 hash;
+
+	if (skb_rx_queue_recorded(skb)) {
+		u16 index = skb_get_rx_queue(skb);
+
+		if (unlikely(index >= dev->real_num_rx_queues)) {
+			WARN_ONCE(dev->real_num_rx_queues > 1,
+					"%s received packet on queue %u, but number "
+					"of RX queues is %u\n",
+					dev->name, index, dev->real_num_rx_queues);
+			goto done;
+		}
+		rxqueue += index;
+	}
+
+	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
+
+	flow_table = rcu_dereference(rxqueue->rps_flow_table);
+	map = rcu_dereference(rxqueue->rps_map);
+	if (!flow_table && !map)
+		goto done;
+
+	skb_reset_network_header(skb);
+	hash = skb_get_hash(skb);
+	if (!hash)
+		goto done;
+
+	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
+	//[HEMA] Get sd to access pkt steering ops
+	sd = &per_cpu(softnet_data, smp_processor_id());
+	//=======================================
+	if (flow_table && sock_flow_table) {
+		struct rps_dev_flow *rflow;
+		u32 next_cpu;
+		u32 ident;
+
+		/* First check into global flow table if there is a match.
+		 * This READ_ONCE() pairs with WRITE_ONCE() from rps_record_sock_flow().
+		 */
+		ident = READ_ONCE(sock_flow_table->ents[hash & sock_flow_table->mask]);
+		if ((ident ^ hash) & ~net_hotdata.rps_cpu_mask)
+			goto try_rps;
+
+		next_cpu = ident & net_hotdata.rps_cpu_mask;
+
+		/* OK, now we know there is a match,
+		 * we can look at the local (per receive queue) flow table
+		 */
+		rflow = &flow_table->flows[hash & flow_table->mask];
+		tcpu = rflow->cpu;
+
+		/*
+		 * If the desired CPU (where last recvmsg was done) is
+		 * different from current CPU (one in the rx-queue flow
+		 * table entry), switch if one of the following holds:
+		 *   - Current CPU is unset (>= nr_cpu_ids).
+		 *   - Current CPU is offline.
+		 *   - The current CPU's queue tail has advanced beyond the
+		 *     last packet that was enqueued using this table entry.
+		 *     This guarantees that all previous packets for the flow
+		 *     have been dequeued, thus preserving in order delivery.
+		 */
+		if (unlikely(tcpu != next_cpu) &&
+				(tcpu >= nr_cpu_ids || !cpu_online(tcpu) ||
+				 ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
+					 rflow->last_qtail)) >= 0)) {
+			tcpu = next_cpu;
+			//[HEMA] Replace with interface
+			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, next_cpu);
+			//[ORIGINAL]
+			//rflow = set_rps_cpu(dev, skb, rflow, next_cpu);
+			//=============================================
+		}
+
+		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
+			*rflowp = rflow;
+			cpu = tcpu;
+			goto done;
+		}
+	}
+
+try_rps:
+
+	if (map) {
+		tcpu = map->cpus[reciprocal_scale(hash, map->len)];
+		if (cpu_online(tcpu)) {
+			cpu = tcpu;
+			goto done;
+		}
+	}
+
+done:
+	return cpu;
+}
+
+
+
+
+
+static void interface_mark_as_busy(int tcpu){
+
+	if(custom_toggle == 1) this_before(tcpu);
+
+}
+static void interface_mark_as_idle(int tcpu){
+
+	if(custom_toggle == 1) this_after(tcpu);
+		
+}
+static int interface_get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
+		struct rps_dev_flow **rflowp){
+
+	if(custom_toggle == 1)	return this_get_cpu(dev, skb, rflowp);
+		
+	else 				return get_rps_cpu_copy(dev, skb, rflowp);
+
+
+}
+
+
 static struct pkt_steer_ops my_ops = {
 
-	.get_rps_cpu = this_get_cpu,
+	.get_rps_cpu = interface_get_rps_cpu,
 	.set_rps_cpu = this_set_cpu,
-	.mark_as_busy = this_before,
-	.mark_as_idle = this_after
+	.mark_as_busy = interface_mark_as_busy,
+	.mark_as_idle = interface_mark_as_idle
 
 };
+
 
 static int my_proc_show(struct seq_file *m,void *v){
 
@@ -370,111 +459,6 @@ static int create_proc(void){
 }
 
 
-static struct timer_list lb_timer;
-
-static inline unsigned long cpu_util(int cpu){
-
-	return cpu_util_cfs(cpu);
-}
-
-unsigned long threshold_up = 500;
-unsigned long threshold_low = 200;
-
-
-static void iaps_load_balancer(struct timer_list *timer){
-
-	unsigned long avg_util = 0;
-
-	printk("Timer Triggered!\n");
-
-
-	//Check average utilization
-	for(int i = 0; i < num_curr_cpus; i++){
-		unsigned long util = cpu_util(base_cpu + i);
-
-		printk("CPU %d Util: %lu\n", base_cpu + i, util);
-
-		avg_util += util;
-	}
-
-	avg_util /= num_curr_cpus;
-
-	printk("Avergae Usage: %lu\n", avg_util);
-
-	//update CPU count
-
-	if(avg_util > threshold_up && num_curr_cpus < max_cpus)
-		num_curr_cpus++;
-	
-	if(avg_util < threshold_low && num_curr_cpus > 1)
-		num_curr_cpus--;
-
-
-
-
-	// Rearm Timer
-	mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
-
-}
-
-//Copied from Kernel
-static void rps_dev_flow_table_release(struct rcu_head *rcu)
-{
-	struct rps_dev_flow_table *table = container_of(rcu,
-	    struct rps_dev_flow_table, rcu);
-	vfree(table);
-}
-
-static int create_flow_table(int destroy){
-
-	unsigned long mask, count = (destroy) ? 0 : flow_table_size;
-	struct rps_dev_flow_table *table, *old_table;
-	static DEFINE_SPINLOCK(rps_dev_flow_lock);
-
-	if (count) {
-		mask = count - 1;
-		/* mask = roundup_pow_of_two(count) - 1;
-		 * without overflows...
-		 */
-		while ((mask | (mask >> 1)) != mask)
-			mask |= (mask >> 1);
-		/* On 64 bit arches, must check mask fits in table->mask (u32),
-		 * and on 32bit arches, must check
-		 * RPS_DEV_FLOW_TABLE_SIZE(mask + 1) doesn't overflow.
-		 */
-#if BITS_PER_LONG > 32
-		if (mask > (unsigned long)(u32)mask)
-			return -EINVAL;
-#else
-		if (mask > (ULONG_MAX - RPS_DEV_FLOW_TABLE_SIZE(1))
-				/ sizeof(struct rps_dev_flow)) {
-			/* Enforce a limit to prevent overflow */
-			return -EINVAL;
-		}
-#endif
-		table = vmalloc(RPS_DEV_FLOW_TABLE_SIZE(mask + 1));
-		if (!table)
-			return -ENOMEM;
-
-		table->mask = mask;
-		for (count = 0; count <= mask; count++)
-			table->flows[count].cpu = RPS_NO_CPU;
-	} else {
-		table = NULL;
-	}
-
-	spin_lock(&rps_dev_flow_lock);
-	old_table = rcu_dereference_protected(iaps_flow_table,
-			lockdep_is_held(&rps_dev_flow_lock));
-	rcu_assign_pointer(iaps_flow_table, table);
-	spin_unlock(&rps_dev_flow_lock);
-
-	if (old_table)
-		call_rcu(&old_table->rcu, rps_dev_flow_table_release);
-
-	return 0;
-
-}
 
 static int __init init_pkt_steer_mod(void){
 	int ret;
@@ -491,28 +475,16 @@ static int __init init_pkt_steer_mod(void){
 
 	}
 
-	ret = create_flow_table(0);
-	if(ret < 0){
-		printk(KERN_ERR "Failed to set up flow table for IAPS (%d)\n", ret);
-		return ret;
-	}
-
 	if(!list_empty(&rps_busy_backlog)){
 		printk(KERN_ERR "Busy Backlog still has entries. Abort.");
-		create_flow_table(1);
 		return -1;
 	}
 
 	ret = create_proc();
 	if(ret < 0){
 		printk(KERN_ERR "pkt_steer_module could not setup proc (%d)\n", ret);
-		create_flow_table(1);
 		return ret;
 	}
-
-	//activate timer
-	timer_setup(&lb_timer, iaps_load_balancer, 0);
-	mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
 
 	WRITE_ONCE(net_hotdata.pkt_steer_ops, &my_ops);
 
@@ -529,13 +501,7 @@ static void __exit exit_pkt_steer_mod(void){
 
 	remove_proc_entry("pkt_steer_module", NULL);
 
-	//remove timer
-	del_timer(&lb_timer);
-
-
 	WRITE_ONCE(net_hotdata.pkt_steer_ops, &pkt_standard_ops);
-		
-	create_flow_table(1);
 	
 }
 

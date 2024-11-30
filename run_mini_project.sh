@@ -12,16 +12,12 @@ custom=${5:-0}
 backup_core=${6:-1}
 conns=${7:-6}
 intf=${8:-ens4np0}
-iaps_busy_list=${9:-0}
-num_queue=${10:-8}
-gro=${11:-1}
-core_start=${12:-0}
-core_num=${13:-8}
-time=${14:-10} 
+num_queue=${9:-8}
+core_start=${10:-0}
+core_num=${11:-8}
+time=${12:-10} 
 
 IPERF_BIN=iperf3
-
-type="Unknown"
 
 if command -v iperf3_napi &> /dev/null
 then
@@ -42,11 +38,9 @@ if [[ "$rss" == "1" ]]
 then
 	echo "Enable RSS"
 	ethtool -L $intf combined $num_queue
-	type="RSS"
 else
 	echo "Disable RSS"
 	ethtool -L $intf combined 1
-	num_queue=1
 fi
 
 # Setup rfs/rps
@@ -54,8 +48,7 @@ if [[ "$rps" == "1" ]]
 then
 	#enable rps
 	echo "Enable RPS"
-	$current_path/scripts/enable_rps.sh $intf $(( core_start + num_queue )) $((core_num - num_queue))
-	type="RPS"
+	$current_path/scripts/enable_rps.sh $intf $core_start $core_num
 else
 	echo "Disable RPS"
 	$current_path/scripts/disable_rps.sh $intf
@@ -67,7 +60,6 @@ then
 	#enable rfs
 	echo "Enable RFS"
 	$current_path/scripts/enable_rfs.sh $intf
-	type="RFS"
 else
 	echo "Disable RFS"
 	$current_path/scripts/disable_rfs.sh $intf
@@ -86,18 +78,13 @@ then
 	echo 1 > /sys/module/pkt_steer_module/parameters/custom_toggle
 else
 	echo "Disable Custom"
+	echo 0 > /sys/module/pkt_steer_module/parameters/custom_toggle
+
 	#rmmod pkt_steer_module
 	if [[ "$rfs" == "0" ]]
 	then
 		$current_path/scripts/disable_rfs.sh $intf
 	fi
-fi
-
-if [[ "$gro" == "1" ]]
-then
-	ethtool -K $intf gro on
-else
-	ethtool -K $intf gro off
 fi
 
 
@@ -109,17 +96,8 @@ $current_path/scripts/set_affinity.sh $intf $core_start
 $current_path/scripts/before.sh $intf
 
 # Run iperf3
-taskset -c "$core_start-$((core_start + core_num - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M 100 > /dev/null"&
+taskset -c "$core_start-$((core_start + core_num - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} > /dev/null"&
 IPERF_PID=$!
-
-# Perform Latency Test 
-sleep 3
-if test -f /proc/latency_module; then
-	python3 latency_accessor.py $current_path/data/$exp_name/latency $type
-fi
-if test -f /proc/ipi_lat_module; then
-	python3 $current_path/module/ipi_latency_module/accessor.py $current_path/data/$exp_name/latency $type
-fi
 
 # Wait for iperf3 to exit [Optional]
 tail --pid=$IPERF_PID -f /dev/null
@@ -132,7 +110,7 @@ $current_path/scripts/after.sh $exp_name $intf
 mv $current_path/iperf.json $current_path/data/$exp_name/
 
 # Apply File Transformation
-python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER
+python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PKT_STEER PROC_STAT
 
 #if [[ "$custom" == "1" ]]
 #then
