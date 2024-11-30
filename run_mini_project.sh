@@ -16,9 +16,10 @@ iaps_busy_list=${9:-0}
 num_queue=${10:-8}
 gro=${11:-1}
 separate=${12:-0}
-core_start=${13:-0}
-core_num=${14:-8}
-time=${15:-10} 
+mss=${13:-1460}
+core_start=${14:-0}
+core_num=${15:-8}
+time=${16:-10} 
 
 IPERF_BIN=iperf3
 
@@ -46,6 +47,7 @@ echo $rss
 if [[ "$rss" == "1" ]]
 then
 	echo "Enable RSS"
+	echo $intf
 	ethtool -L $intf combined $num_queue
 	type="RSS"
 else
@@ -62,7 +64,7 @@ then
 	IRQ_CORE=$core_start
 	IRQ_CORE_NUM=$num_queue
 
-	if [[ ( "$rps" == "1" ) || ( "$custom" == "1") ]]
+	if [[ ( "$rps" == "1" ) || ( ( "$custom" == "1") && ( "$backup_core" != "1" ) ) ]]
 	then	
 		PP_CORE=$((core_start + IRQ_CORE_NUM))
 		PP_CORE_NUM=$(( (core_num - IRQ_CORE_NUM) / 2))
@@ -71,8 +73,8 @@ then
 	else
 		PP_CORE=0
 		PP_CORE_NUM=0
-		APP_CORE=$((core_start))
-		APP_CORE_NUM=$((core_num))
+		APP_CORE=$((core_start + IRQ_CORE_NUM))
+		APP_CORE_NUM=$((core_num - IRQ_CORE_NUM))
 	fi
 
 	echo $IRQ_CORE
@@ -86,8 +88,8 @@ then
 else
 	IRQ_CORE=$core_start
 	IRQ_CORE_NUM=$num_queue
-	PP_CORE=$core_start
-	PP_CORE_NUM=$core_num
+	PP_CORE=$((core_start+num_queue))
+	PP_CORE_NUM=$((core_num-num_queue))
 	APP_CORE=$core_start
 	APP_CORE_NUM=$core_num
 fi
@@ -127,8 +129,14 @@ then
 	#make -C $current_path/module
 	#insmod $current_path/module/pkt_steer_module.ko
 	#$current_path/scripts/enable_rfs.sh $intf
-	$current_path/scripts/enable_rps.sh $intf $((core_start + num_queue)) $((core_num - num_queue))	
+	$current_path/scripts/enable_rps.sh $intf $PP_CORE $PP_CORE_NUM	
     echo $backup_core > /sys/module/pkt_steer_module/parameters/choose_backup_core
+	
+	if [[ "$backup_core" == "1" ]]
+	then
+		$current_path/scripts/enable_rfs.sh $intf
+	fi
+
 	echo $iaps_busy_list > /sys/module/pkt_steer_module/parameters/list_position
 	
 	echo $PP_CORE > /sys/module/pkt_steer_module/parameters/base_cpu
@@ -141,10 +149,10 @@ else
 	echo 0 > /sys/module/pkt_steer_module/parameters/custom_toggle
 
 	#rmmod pkt_steer_module
-	if [[ "$rfs" == "0" ]]
-	then
-		$current_path/scripts/disable_rfs.sh $intf
-	fi
+	#if [[ "$rfs" == "0" ]]
+	#then
+	#	$current_path/scripts/disable_rfs.sh $intf
+	#fi
 fi
 
 if [[ "$gro" == "1" ]]
@@ -163,24 +171,24 @@ $current_path/scripts/set_affinity.sh $intf $core_start
 $current_path/scripts/before.sh $intf
 
 # Run perf
-if [[ "$separate" == "1" ]]
-then
-	$PERF_BIN record -C $IRQ_CORE-$((IRQ_CORE + IRQ_CORE_NUM - 1)) -o $current_path/perf_irq.json &
-	IRQPERF_PID=$!
-	if [[ "$PP_CORE_NUM" != "0" ]]
-	then
-		$PERF_BIN record -C $PP_CORE-$((PP_CORE + PP_CORE_NUM - 1)) -o $current_path/perf_pp.json &
-		PPPERF_PID=$!
-	fi
-	$PERF_BIN record -C $APP_CORE-$((APP_CORE + APP_CORE_NUM - 1)) -o $current_path/perf_app.json &
-	APPPERF_PID=$!
-fi
-
-$PERF_BIN record -C $core_start-$((core_start + core_num - 1)) -o $current_path/perf.json &
-PERF_PID=$!
+#if [[ "$separate" == "1" ]]
+#then
+#	$PERF_BIN record -C $IRQ_CORE-$((IRQ_CORE + IRQ_CORE_NUM - 1)) -o $current_path/perf_irq.json &
+#	IRQPERF_PID=$!
+#	if [[ "$PP_CORE_NUM" != "0" ]]
+#	then
+#		$PERF_BIN record -C $PP_CORE-$((PP_CORE + PP_CORE_NUM - 1)) -o $current_path/perf_pp.json &
+#		PPPERF_PID=$!
+#	fi
+#	$PERF_BIN record -C $APP_CORE-$((APP_CORE + APP_CORE_NUM - 1)) -o $current_path/perf_app.json &
+#	APPPERF_PID=$!
+#fi
+#
+#$PERF_BIN record -C $core_start-$((core_start + core_num - 1)) -o $current_path/perf.json &
+#PERF_PID=$!
 
 # Run iperf3
-taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} > /dev/null"&
+taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M ${mss} > /dev/null"&
 IPERF_PID=$!
 
 # Perform Latency Test 
@@ -195,23 +203,23 @@ fi
 # Wait for iperf3 to exit [Optional]
 tail --pid=$IPERF_PID -f /dev/null
 echo "Iperf ended"
-if [[ "$separate" == 1 ]]
-then
-	kill $IRQPERF_PID
-	tail --pid=$IRQPERF_PID -f /dev/null
-	if [[ "$PP_CORE_NUM" != "0" ]]
-	then
-		kill $PPPERF_PID
-		tail --pid=$PPPERF_PID -f /dev/null
-	fi
-	kill $APPPERF_PID
-	tail --pid=$APPPERF_PID -f /dev/null
-
-fi
-
-
-kill $PERF_PID
-tail --pid=$PERF_PID -f /dev/null
+#if [[ "$separate" == 1 ]]
+#then
+#	kill $IRQPERF_PID
+#	tail --pid=$IRQPERF_PID -f /dev/null
+#	if [[ "$PP_CORE_NUM" != "0" ]]
+#	then
+#		kill $PPPERF_PID
+#		tail --pid=$PPPERF_PID -f /dev/null
+#	fi
+#	kill $APPPERF_PID
+#	tail --pid=$APPPERF_PID -f /dev/null
+#
+#fi
+#
+#
+#kill $PERF_PID
+#tail --pid=$PERF_PID -f /dev/null
 
 # Get "After" Values
 $current_path/scripts/after.sh $exp_name $intf
@@ -221,41 +229,41 @@ mv $current_path/iperf.json $current_path/data/$exp_name/
 
 #deal with perf output
 
-echo "" > $current_path/data/$exp_name/perf.json 
-if [[ "$separate" == 1 ]]
-then
-	if test -f perf_irq.json
-	then 
-		echo "TYPE	IRQ" >> $current_path/data/$exp_name/perf.json 
-		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_irq.json >> $current_path/data/$exp_name/perf.json
-	fi
-
-	if test -f perf_pp.json
-	then 
-		echo "TYPE	PP" >> $current_path/data/$exp_name/perf.json 
-		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_pp.json >> $current_path/data/$exp_name/perf.json
-	fi
-
-	if test -f perf_app.json
-	then 
-		echo "TYPE	APP" >> $current_path/data/$exp_name/perf.json 
-		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_app.json >> $current_path/data/$exp_name/perf.json
-	fi
-
-fi
-
-echo "TYPE	FULL" >> $current_path/data/$exp_name/perf.json 
-$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf.json >> $current_path/data/$exp_name/perf.json
-
-
-
-#$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf.json > $current_path/data/$exp_name/perf.json
-rm $current_path/perf*.json
+#echo "" > $current_path/data/$exp_name/perf.json 
+#if [[ "$separate" == 1 ]]
+#then
+#	if test -f perf_irq.json
+#	then 
+#		echo "TYPE	IRQ" >> $current_path/data/$exp_name/perf.json 
+#		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_irq.json >> $current_path/data/$exp_name/perf.json
+#	fi
+#
+#	if test -f perf_pp.json
+#	then 
+#		echo "TYPE	PP" >> $current_path/data/$exp_name/perf.json 
+#		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_pp.json >> $current_path/data/$exp_name/perf.json
+#	fi
+#
+#	if test -f perf_app.json
+#	then 
+#		echo "TYPE	APP" >> $current_path/data/$exp_name/perf.json 
+#		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_app.json >> $current_path/data/$exp_name/perf.json
+#	fi
+#
+#fi
+#
+#echo "TYPE	FULL" >> $current_path/data/$exp_name/perf.json 
+#$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf.json >> $current_path/data/$exp_name/perf.json
+#
+#
+#
+##$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf.json > $current_path/data/$exp_name/perf.json
+#rm $current_path/perf*.json
 
 
 # Apply File Transformation
-#python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER
-python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER PERF
+python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER
+#python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER PERF
 
 
 #if [[ "$custom" == "1" ]]

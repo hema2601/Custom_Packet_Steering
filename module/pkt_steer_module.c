@@ -230,7 +230,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
 
-	flow_table = rcu_dereference(rxqueue->rps_flow_table);
+	//flow_table = rcu_dereference(rxqueue->rps_flow_table);
 	//if(flow_table)
 	//	printk("Found it!");
 	flow_table = rcu_dereference(iaps_flow_table);
@@ -563,21 +563,17 @@ static void iaps_load_balancer(struct timer_list *timer){
 
 	unsigned long avg_util = 0;
 
-	printk("Timer Triggered!\n");
-
+	if(choose_backup_core != LB)
+		goto rearm;
 
 	//Check average utilization
 	for(int i = 0; i < num_curr_cpus; i++){
 		unsigned long util = cpu_util(base_cpu + i);
 
-		printk("CPU %d Util: %lu\n", base_cpu + i, util);
-
 		avg_util += util;
 	}
 
 	avg_util /= num_curr_cpus;
-
-	printk("Avergae Usage: %lu\n", avg_util);
 
 	//update CPU count
 
@@ -591,6 +587,7 @@ static void iaps_load_balancer(struct timer_list *timer){
 
 
 	// Rearm Timer
+rearm:
 	mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
 
 }
