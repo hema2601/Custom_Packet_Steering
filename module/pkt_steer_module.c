@@ -26,6 +26,7 @@ struct busy_backlog_item{
 	struct list_head list;
 	struct softnet_data *sd;
 	int cpu;
+	int overloaded;
 };
 DEFINE_PER_CPU(struct busy_backlog_item, busy_backlog_item);
 
@@ -148,23 +149,35 @@ static int perform_rfs(struct net_device *dev, struct sk_buff *skb){
 	u32 hash;
 
 
+	if (skb_rx_queue_recorded(skb)) {
+		u16 index = skb_get_rx_queue(skb);
+
+		if (unlikely(index >= dev->real_num_rx_queues)) {
+			WARN_ONCE(dev->real_num_rx_queues > 1,
+					"%s received packet on queue %u, but number "
+					"of RX queues is %u\n",
+					dev->name, index, dev->real_num_rx_queues);
+			goto done;
+		}
+		rxqueue += index;
+	}
 	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
 
 	flow_table = rcu_dereference(rxqueue->rps_flow_table);
-	if (!flow_table)
+	if (!flow_table){
 		goto done;
-
+	}
 	skb_reset_network_header(skb);
 	hash = skb_get_hash(skb);
-	if (!hash)
+	if (!hash){
 		goto done;
+	}
 
 	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
 	//[HEMA] Get sd to access pkt steering ops
 	sd = &per_cpu(softnet_data, smp_processor_id());
 	//=======================================
 	if (flow_table && sock_flow_table) {
-		u32 next_cpu;
 		u32 ident;
 
 		/* First check into global flow table if there is a match.
@@ -174,9 +187,8 @@ static int perform_rfs(struct net_device *dev, struct sk_buff *skb){
 		if ((ident ^ hash) & ~net_hotdata.rps_cpu_mask)
 			goto done;
 
-		next_cpu = ident & net_hotdata.rps_cpu_mask;
+		cpu = ident & net_hotdata.rps_cpu_mask;
 	}
-
 done:
 	return cpu;
 
@@ -218,6 +230,9 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 	/* Avoid computing hash if RFS/RPS is not active for this rxqueue */
 
+	flow_table = rcu_dereference(rxqueue->rps_flow_table);
+	//if(flow_table)
+	//	printk("Found it!");
 	flow_table = rcu_dereference(iaps_flow_table);
 	map = rcu_dereference(rxqueue->rps_map);
 	if (!flow_table && !map)
@@ -263,7 +278,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					tcpu = perform_rfs(dev, skb);
 					if(tcpu != -1)
 						break;
-					WARN_ON(1);
+					WARN_ONCE(1, "RFS does not seem to be working, fall back to load balancing");
 					tcpu = (hash % num_curr_cpus) + base_cpu;
 					break;
 				case LB:
@@ -651,7 +666,7 @@ static int __init init_pkt_steer_mod(void){
 		item->cpu = i;
 		INIT_LIST_HEAD(&item->list);
 		item->sd = &per_cpu(softnet_data, i);
-
+		item->overloaded = 0;
 	}
 
 	ret = create_flow_table(0);
