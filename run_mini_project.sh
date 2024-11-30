@@ -71,8 +71,8 @@ then
 	else
 		PP_CORE=0
 		PP_CORE_NUM=0
-		APP_CORE=$((core_start + IRQ_CORE_NUM))
-		APP_CORE_NUM=$((core_num - IRQ_CORE_NUM))
+		APP_CORE=$((core_start))
+		APP_CORE_NUM=$((core_num))
 	fi
 
 	echo $IRQ_CORE
@@ -180,7 +180,7 @@ $PERF_BIN record -C $core_start-$((core_start + core_num - 1)) -o $current_path/
 PERF_PID=$!
 
 # Run iperf3
-taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M 100 > /dev/null"&
+taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} > /dev/null"&
 IPERF_PID=$!
 
 # Perform Latency Test 
@@ -254,7 +254,9 @@ rm $current_path/perf*.json
 
 
 # Apply File Transformation
+#python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER
 python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER PERF
+
 
 #if [[ "$custom" == "1" ]]
 #then

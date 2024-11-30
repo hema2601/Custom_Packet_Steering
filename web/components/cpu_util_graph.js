@@ -9,12 +9,12 @@ var CPUUtil = {
 	"height":220,
 	"transform": [
 		{"filter":"datum.CPU >= 0 && datum.CPU <= 7"},
-		{"calculate":"datum.User + datum.Nice + datum.System + datum.Idle + datum.IOWait + datum.Irq + datum.Softirq + datum.Steal + datum.Guest + datum.Guest_Nice", "as":"Total"},
+		{"calculate":"datum.User + datum.Nice + datum.System + (datum.Idle-200) + datum.IOWait + datum.Irq + datum.Softirq + datum.Steal + datum.Guest + datum.Guest_Nice", "as":"Total"},
 		{"filter":"datum.Total < 40000"},
 		{"calculate":"datum.User / datum.Total", "as":"UP"},
 		{"calculate":"datum.System / datum.Total", "as":"SyP"},
 		{"calculate":"datum.Softirq / datum.Total", "as":"SoP"},
-		{"calculate":"datum.Idle / datum.Total", "as":"IP"},
+		{"calculate":"(datum.Idle-200) / datum.Total", "as":"IP"},
 		{"calculate":"(datum.Nice+ datum.IOWait + datum.Irq+ datum.Steal + datum.Guest + datum.Guest_Nice) / datum.Total", "as":"Others"},
 		{"fold": ["UP", "SyP", "SoP", "IP", "Others"]}
 	],

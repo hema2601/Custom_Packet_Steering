@@ -14,8 +14,8 @@ var perf_graph = {
 		"row": {"field":"Type", "type":"nominal"},
 		"column": {"field": "Exp",  "type": "nominal"},
 		"x": {"field": "key", "type": "nominal", "sort":[]},
-		"xOffset":{"field":"Conns"},
+		"xOffset":{"field":"Conns", "sort":[]},
 		"y": {"aggregate":"mean", "field": "value", "type": "quantitative"},
-		"color": {"field": "Conns", "type": "nominal"}
+		"color": {"field": "Conns", "type": "ordinal", "sort":[]}
 	}
 }
