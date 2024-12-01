@@ -13,8 +13,9 @@ class Filetype(Enum):
     PKT_STEER   = 6
     PROC_STAT   = 7
     PERF        = 8
+    PERF_STAT   = 9
 
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF'])
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT'])
 
 
 class JsonGenerator:
@@ -24,7 +25,7 @@ class JsonGenerator:
     _tr = {}
 
     def __init__(self, path):
-        print("Open the file: " + path)
+        #print("Open the file: " + path)
         self.f = open(path, 'r+')
         self.json_dict = list()
 
@@ -50,19 +51,19 @@ class JsonGenerator:
 
     def cleanup(self):
         # close files
-        print("Close all files")
+        #print("Close all files")
         self.f.close()
 
 
 class SOFTIRQGen(JsonGenerator):
     def generate_json(self):
-        print("Generate softirq.json")
+        #print("Generate softirq.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original softirq.json")
+        #print("Read original softirq.json")
         for line in self.f:
             parts = [x for x in line.split(' ') if x.strip()]
 
@@ -87,13 +88,14 @@ class SOFTIRQGen(JsonGenerator):
 
 class IRQGen(JsonGenerator):
     def generate_json(self):
-        print("Generate irq.json")
+        #print("Generate irq.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original irq.json")
+        #print("Read original irq.json")
+
 
         first = True
         for line in self.f:
@@ -126,13 +128,13 @@ class IRQGen(JsonGenerator):
 class PACKET_CNTGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate packet_cnt.json")
+        #print("Generate packet_cnt.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original packet_cnt.json")
+        #print("Read original packet_cnt.json")
         for line in self.f:
 
             dropped = False
@@ -149,7 +151,7 @@ class PACKET_CNTGen(JsonGenerator):
                 net_type = 'TX'
 
             # Read Queue Number
-            print(parts[0])
+            #print(parts[0])
             if not dropped:
                 q_num = int(re.sub("[^0-9]", "", parts[0]))
             else:
@@ -172,13 +174,13 @@ class PACKET_CNTGen(JsonGenerator):
 class IPERFGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate iperf.json")
+        #print("Generate iperf.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original iperf.json")
+        #print("Read original iperf.json")
         tmp_dict = json.load(self.f)
         conns = list()
 
@@ -212,13 +214,13 @@ class IPERFGen(JsonGenerator):
 class SOFTNETGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate softnet.json")
+        #print("Generate softnet.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original softnet.json")
+        #print("Read original softnet.json")
 
 
         for line in self.f:
@@ -255,13 +257,13 @@ class SOFTNETGen(JsonGenerator):
 class PKT_STEERGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate pkt_steer.json")
+        #print("Generate pkt_steer.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original pkt_steer.json")
+        #print("Read original pkt_steer.json")
 
 
         for line in self.f:
@@ -299,13 +301,13 @@ class PKT_STEERGen(JsonGenerator):
 class PROC_STATGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate proc_stat.json")
+        #print("Generate proc_stat.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original proc_stat.json")
+        #print("Read original proc_stat.json")
 
 
         for line in self.f:
@@ -353,7 +355,7 @@ class PERFGen(JsonGenerator):
 
     def generate_json(self):
         # pass
-        print("Generate perf.json")
+        #print("Generate perf.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
@@ -392,7 +394,7 @@ class PERFGen(JsonGenerator):
                     elem['Unaccounted'] = unaccounted_contrib
                     for typ in contributions.keys():
                         elem[typ] = contributions[typ]
-                    print(elem)
+                    #print(elem)
                     self.json_dict.append(elem)
 
                 # reinitialize
@@ -441,6 +443,42 @@ class PERFGen(JsonGenerator):
 
         #return total_contrib, unaccounted_contrib, contributions, not_found
 
+class PERF_STATGen(JsonGenerator):
+
+    def generate_json(self):
+        # pass
+        #print("Generate perf_stat.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+
+        first = True
+
+        keys = ["cycles", "instructions", "LLC-loads", "LLC-load-misses"]
+        elem = dict()
+
+        for line in self.f:
+            comps = line.split()
+            
+            if len(comps) == 2 and comps[0] == "TYPE":
+                if first is not True:
+                    self.json_dict.append(elem)
+                    elem = dict()
+                elem["Type"] = comps[1]
+
+                first = False
+
+                # skip to next line
+                continue
+
+            if len(comps) >= 2 and comps[1] in keys:
+                elem[comps[1]] = int(comps[0].replace(',',''))
+
+        self.json_dict.append(elem)
+
+        #print(self.json_dict)
 
 
 argc = len(sys.argv)

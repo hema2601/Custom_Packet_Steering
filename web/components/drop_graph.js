@@ -8,9 +8,12 @@ var Drops = {
  "transform": [
   //{"filter":"datum.CPU >= 0 && datum.CPU <= 7"},
   // {"filter":"datum.Exp == 'Custom1' || datum.Exp == 'RFS' || datum.Exp == 'RPS'"},
-    {"calculate":"(datum.Exp == 'Custom1') ? 'IAPS': datum.Exp", "as":"Scheme"},
+    
 	 {"filter":"datum.Type == 'dropped'"},
-	  {"calculate":"datum.After - datum.Before", "as":"value"}
+	  {"calculate":"datum.After - datum.Before", "as":"value"},
+		{"calculate": "(datum.Exp == 'Custom1') ? 'IAPS+RFS':datum.Exp", "as":"Scheme"},
+
+		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
 	   ],
 	   "mark": "bar",
 	   "encoding": {

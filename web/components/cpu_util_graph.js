@@ -16,11 +16,14 @@ var CPUUtil = {
 		{"calculate":"datum.Softirq / datum.Total", "as":"SoP"},
 		{"calculate":"(datum.Idle-200) / datum.Total", "as":"IP"},
 		{"calculate":"(datum.Nice+ datum.IOWait + datum.Irq+ datum.Steal + datum.Guest + datum.Guest_Nice) / datum.Total", "as":"Others"},
-		{"fold": ["UP", "SyP", "SoP", "IP", "Others"]}
+		{"fold": ["UP", "SyP", "SoP", "IP", "Others"]},
+		{"calculate": "(datum.Exp == 'Custom1') ? 'IAPS+RFS':datum.Exp", "as":"Scheme"},
+
+		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
 	],
 	"mark": "bar",
 	"encoding": {
-		"column": {"field": "Exp",  "type": "nominal"},
+		"column": {"field": "Scheme",  "type": "nominal"},
 		"row":{"field":"Rep"},
 		"x": {"field": "Conns", "type": "nominal", "sort":[]},
 		"xOffset":{"field":"CPU"},

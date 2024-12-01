@@ -10,7 +10,10 @@ var PpIPI = {
 //	   {"filter":"datum.Exp == 'Custom1' || datum.Exp == 'RFS' || datum.Exp == 'RPS'"},
 	     {"calculate": "(datum['RPS Interrupts'] != 0) ? datum.Processed / datum['RPS Interrupts'] : 0", "as": "Packets Per IPI"},
 		   {"filter":"datum.Processed != 0"},
-		     {"calculate":"(datum.Exp == 'Custom1') ? 'IAPS': datum.Exp", "as":"Scheme"}
+		     
+		{"calculate": "(datum.Exp == 'Custom1') ? 'IAPS+RFS':datum.Exp", "as":"Scheme"},
+
+		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
 			   ],
 			   "mark": "bar",
 			   "encoding": {
