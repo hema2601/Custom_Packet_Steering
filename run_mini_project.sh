@@ -88,6 +88,8 @@ then
 else
 	IRQ_CORE=$core_start
 	IRQ_CORE_NUM=$num_queue
+	#PP_CORE=$core_start
+	#PP_CORE_NUM=$core_num
 	PP_CORE=$((core_start+num_queue))
 	PP_CORE_NUM=$((core_num-num_queue))
 	APP_CORE=$core_start
@@ -129,20 +131,29 @@ then
 	#make -C $current_path/module
 	#insmod $current_path/module/pkt_steer_module.ko
 	#$current_path/scripts/enable_rfs.sh $intf
+
 	$current_path/scripts/enable_rps.sh $intf $PP_CORE $PP_CORE_NUM	
+	echo 1
     echo $backup_core > /sys/module/pkt_steer_module/parameters/choose_backup_core
+	echo 2
 	
 	if [[ "$backup_core" == "1" ]]
 	then
+		echo 3
 		$current_path/scripts/enable_rfs.sh $intf
 	fi
 
+	echo 4
 	echo $iaps_busy_list > /sys/module/pkt_steer_module/parameters/list_position
+	echo 5
 	
 	echo $PP_CORE > /sys/module/pkt_steer_module/parameters/base_cpu
+	echo 6
 	echo $PP_CORE_NUM > /sys/module/pkt_steer_module/parameters/max_cpus
+	echo 7
 	
 	echo 1 > /sys/module/pkt_steer_module/parameters/custom_toggle
+	echo 8
 	type="IAPS"
 else
 	echo "Disable Custom"
@@ -196,7 +207,8 @@ $PERF_BIN stat -C $core_start-$((core_start + core_num - 1)) -e cycles,instructi
 PERFSTAT_PID=$!
 
 # Run iperf3
-taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M ${mss} > /dev/null"&
+#taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} > /dev/null"&
+taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M ${mss} -t ${time} > /dev/null"&
 IPERF_PID=$!
 
 # Perform Latency Test 
@@ -228,7 +240,7 @@ then
 #	tail --pid=$APPPERF_PID -f /dev/null
 	kill -s SIGINT $APPPERFSTAT_PID
 	tail --pid=$APPPERFSTAT_PID -f /dev/null
-#
+
 fi
 #
 #
@@ -265,7 +277,7 @@ then
 #	then 
 #		echo "TYPE	APP" >> $current_path/data/$exp_name/perf.json 
 #		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_app.json >> $current_path/data/$exp_name/perf.json
-#	fi
+##	fi
 	if test -f perf_stat_irq.json
 	then 
 		echo "TYPE	IRQ" >> $current_path/data/$exp_name/perf_stat.json 
@@ -298,7 +310,7 @@ rm $current_path/perf_stat.json
 #
 #
 ##$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf.json > $current_path/data/$exp_name/perf.json
-#rm $current_path/perf*.json
+rm $current_path/perf*.json
 
 
 # Apply File Transformation

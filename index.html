@@ -25,7 +25,7 @@
 		<input type="text" id="myInput" placeholder="Enter text">
 
 		<!-- Button to get input value -->
-		<button onclick="getValue()">Get Value</button>
+		<button onclick="getValue()">Get Value!</button>
 
 		<div id="Throughput"></div>
 		<div id="Drops"></div>
@@ -53,8 +53,8 @@ function getValue() {
 
 	document.getElementById("datadir").innerHTML = value;
 
-	loadAllGraphs("./summaries/")
-	//loadAllGraphs("data/".concat(value).concat("/"))
+	//loadAllGraphs("./summaries/")
+	loadAllGraphs("data/".concat(value).concat("/summaries/"))
 
 }
 

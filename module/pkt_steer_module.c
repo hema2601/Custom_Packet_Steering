@@ -7,6 +7,8 @@
 #include <linux/skbuff.h>
 #include <linux/timer.h>
 #include <linux/jiffies.h>
+#include <linux/tick.h>
+
 
 #include <net/pkt_steer_ops.h>
 #include <net/rps.h>
@@ -26,9 +28,16 @@ struct busy_backlog_item{
 	struct list_head list;
 	struct softnet_data *sd;
 	int cpu;
-	int overloaded;
+	uint8_t overloaded;
+	u64 idle;
+	u64 last;
 };
 DEFINE_PER_CPU(struct busy_backlog_item, busy_backlog_item);
+
+
+
+//DEFINE_PER_CPU(uint8_t, overloaded);
+
 
 
 struct my_ops_stats{
@@ -41,6 +50,7 @@ struct my_ops_stats{
 	int prevInvalid;
 	int prevIdle;
 	int choseInvalid;
+	int toOverloaded;
 };
 
 static int num_curr_cpus = 1;
@@ -252,18 +262,35 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		rflow = &flow_table->flows[hash & flow_table->mask];
 		tcpu = rflow->cpu;
 
+		struct sk_buff_head *tcpu_iq;
+		if(!(tcpu >= nr_cpu_ids) && cpu_online(tcpu))
+			tcpu_iq = &(per_cpu(softnet_data, tcpu).input_pkt_queue);
+		else
+			tcpu_iq = NULL;
+
+		//if(tcpu_iq == NULL)
+			//printk("AHA!");
 
 		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) 
-				|| !test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
-				|| (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
+				|| (!test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
+				&& tcpu_iq && skb_queue_empty(tcpu_iq) )
+				|| (tcpu_iq && (skb_queue_len_lockless(tcpu_iq) > 900))
+				)
 				//remove check for process_queue. Reason: The interrupt decision is made base don only input_pkt_queue
-				 /*&& skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue)*/)) {
+				 /*&& skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue)*/ {
 
 			if(tcpu >= nr_cpu_ids || !cpu_online(tcpu)){
 				stats->prevInvalid++;
 			}else{
 				stats->prevIdle++;
 			}
+
+
+			if(tcpu_iq && skb_queue_len_lockless(tcpu_iq) > 900){
+				//printk("CPU #%d Overflowing: %d\n", tcpu,skb_queue_len_lockless(&per_cpu(softnet_data, tcpu).input_pkt_queue));
+				struct busy_backlog_item *tmp  = &per_cpu(busy_backlog_item, tcpu);
+				tmp->overloaded = 1;
+			}			
 
 			//[TODO] Decide backup core
 			switch(choose_backup_core){
@@ -291,11 +318,40 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 			spin_lock(&busy_backlog_lock);
 			if(!list_empty(&rps_busy_backlog)){
 				struct busy_backlog_item *item;
+				int cntr = 0;
+find_item:
 				if(list_position == MY_LIST_HEAD)
 					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
 				else 
 					item = list_last_entry(&rps_busy_backlog, struct busy_backlog_item, list);
 
+
+				//printk("New cpu (%d) has occupancy %d vs %d\n",item->sd->cpu, skb_queue_len_lockless(&item->sd->input_pkt_queue), skb_queue_len_lockless(&(per_cpu(softnet_data, item->cpu).input_pkt_queue)) );
+
+				// Current CPU is overloaded
+				if(skb_queue_len_lockless(&item->sd->input_pkt_queue) > 900){
+
+					//printk("Overloaded (%d), Try #%d\n", skb_queue_len_lockless(&item->sd->input_pkt_queue), cntr);
+
+					if(cntr >= max_cpus){
+						printk("Bad");
+						goto found;
+					}
+
+					// Place at end of list and look again
+					list_del_init(&item->list);
+					if(list_position == MY_LIST_HEAD)
+						list_add_tail(&item->list, &rps_busy_backlog);
+					else 
+						list_add(&item->list, &rps_busy_backlog);
+    				//list_add(list, &rps_busy_backlog);
+				
+					cntr++;
+
+					goto find_item;	
+	
+				}
+found:
 				if(item){
 					stats->assignedToBusy++;
 					tcpu = item->cpu;
@@ -334,6 +390,11 @@ done:
 	if(cpu == this_cpu)
 		stats->targetIsSelf++;
 
+	if(tcpu < nr_cpu_ids && cpu_online(tcpu) && per_cpu(busy_backlog_item, cpu).overloaded)
+		stats->toOverloaded++;
+
+	//printk("Choice: %d\n", cpu);
+
 	return cpu;
 
 
@@ -343,7 +404,8 @@ static void this_before(int tcpu){
 
 	struct list_head *list = &(per_cpu(busy_backlog_item, tcpu).list);	
 	
-    
+
+	// Insert at the head    
 	spin_lock(&busy_backlog_lock);
 	//printk("Adding to busy list");
 	if(list->prev == list)
@@ -511,7 +573,7 @@ static int my_proc_show(struct seq_file *m,void *v){
 
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback);
+		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.toOverloaded);
 	}
 
 	return 0;
@@ -562,25 +624,45 @@ unsigned long threshold_low = 200;
 static void iaps_load_balancer(struct timer_list *timer){
 
 	unsigned long avg_util = 0;
+	int over = 0;
+	struct busy_backlog_item *item;
+	
 
 	if(choose_backup_core != LB)
 		goto rearm;
 
+	
+
 	//Check average utilization
 	for(int i = 0; i < num_curr_cpus; i++){
-		unsigned long util = cpu_util(base_cpu + i);
-
+		unsigned long util;// = cpu_util(base_cpu + i);
+		item = &per_cpu(busy_backlog_item, base_cpu + i);
+		over += item->overloaded;
+		long int tmp1 = item->idle;
+		long int tmp2 = item->last;
+		item->idle = get_cpu_idle_time(base_cpu+i, &item->last, 0);// - item->idle;
+		//item->idle = __usecs_to_jiffies(get_cpu_idle_time_us(base_cpu+i, &item->last)) - item->idle;
+		//item->last = __usecs_to_jiffies(item->last);
+		util = (item->last - tmp2)/1000 - (item->idle - tmp1)/1000;
 		avg_util += util;
+		//printk("CPU #%d: %lu (Overloaded: %u) Idle time: %llu (%llu)\n", base_cpu+i, util, item->overloaded, (item->idle - tmp1)/1000, (item->last - tmp2)/1000);
+		item->overloaded = 0;
 	}
 
 	avg_util /= num_curr_cpus;
 
 	//update CPU count
 
-	if(avg_util > threshold_up && num_curr_cpus < max_cpus)
+	if((avg_util > threshold_up || over) && num_curr_cpus < max_cpus){
+		
+		item = &per_cpu(busy_backlog_item, base_cpu + num_curr_cpus);
+		item->idle=get_cpu_idle_time(base_cpu+num_curr_cpus, &item->last, 0);
+		//item->idle=__usecs_to_jiffies(get_cpu_idle_time_us(base_cpu+num_curr_cpus, &item->last));
 		num_curr_cpus++;
+		
+	}
 	
-	if(avg_util < threshold_low && num_curr_cpus > 1)
+	if(avg_util < threshold_low && !over && num_curr_cpus > 1)
 		num_curr_cpus--;
 
 
@@ -663,6 +745,7 @@ static int __init init_pkt_steer_mod(void){
 		item->cpu = i;
 		INIT_LIST_HEAD(&item->list);
 		item->sd = &per_cpu(softnet_data, i);
+		item->idle = get_cpu_idle_time(i, &item->last, 0);//__usecs_to_jiffies(get_cpu_idle_time_us(i, &item->last));	
 		item->overloaded = 0;
 	}
 

@@ -285,6 +285,7 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16) - elem["TargetIsSelf"]
                 elem["ChoseInvalid"] = int(parts[7],16) - elem["ChoseInvalid"]
                 elem["Fallback"] = int(parts[8],16) - elem["Fallback"]
+                elem["Overloaded"] = int(parts[9],16) - elem["Overloaded"]
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
@@ -296,6 +297,7 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16)
                 elem["ChoseInvalid"] = int(parts[7],16)
                 elem["Fallback"] = int(parts[8],16)
+                elem["Overloaded"] = int(parts[9],16)
                 self.json_dict.append(elem)
 
 class PROC_STATGen(JsonGenerator):
