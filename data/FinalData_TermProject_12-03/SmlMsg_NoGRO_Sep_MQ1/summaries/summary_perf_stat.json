@@ -1,0 +1,1682 @@
+[
+{
+"Type": "FULL",
+"cycles": 82404737801,
+"instructions": 87012442364,
+"LLC-loads": 201844982,
+"LLC-load-misses": 1108978,
+"Exp": "RSS",
+"Conns": "1",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 86970373789,
+"instructions": 77359762003,
+"LLC-loads": 245285948,
+"LLC-load-misses": 1252134,
+"Exp": "RPS",
+"Conns": "1",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 86242186048,
+"instructions": 78736918095,
+"LLC-loads": 250689403,
+"LLC-load-misses": 1109844,
+"Exp": "Custom2",
+"Conns": "1",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 160028675335,
+"instructions": 166159152078,
+"LLC-loads": 410984676,
+"LLC-load-misses": 4569524,
+"Exp": "RSS",
+"Conns": "2",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 167110691617,
+"instructions": 142681571818,
+"LLC-loads": 492616777,
+"LLC-load-misses": 2721560,
+"Exp": "RPS",
+"Conns": "2",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 90768260235,
+"instructions": 84115889821,
+"LLC-loads": 301454804,
+"LLC-load-misses": 1927725,
+"Exp": "Custom2",
+"Conns": "2",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 135268961488,
+"instructions": 144840573601,
+"LLC-loads": 369895024,
+"LLC-load-misses": 4216131,
+"Exp": "RSS",
+"Conns": "4",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 268177853413,
+"instructions": 212153779521,
+"LLC-loads": 750834271,
+"LLC-load-misses": 12545191,
+"Exp": "RPS",
+"Conns": "4",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 143922034459,
+"instructions": 133431081758,
+"LLC-loads": 506269887,
+"LLC-load-misses": 4002883,
+"Exp": "Custom2",
+"Conns": "4",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 131873469259,
+"instructions": 143417626242,
+"LLC-loads": 346143758,
+"LLC-load-misses": 3954690,
+"Exp": "RSS",
+"Conns": "8",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 247014348059,
+"instructions": 207070524677,
+"LLC-loads": 742413782,
+"LLC-load-misses": 15089645,
+"Exp": "RPS",
+"Conns": "8",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 76286361605,
+"instructions": 76735220424,
+"LLC-loads": 290242735,
+"LLC-load-misses": 2354803,
+"Exp": "Custom2",
+"Conns": "8",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 105340589724,
+"instructions": 126102272272,
+"LLC-loads": 313460212,
+"LLC-load-misses": 4207568,
+"Exp": "RSS",
+"Conns": "16",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 147626817862,
+"instructions": 134831412816,
+"LLC-loads": 488488589,
+"LLC-load-misses": 6018907,
+"Exp": "RPS",
+"Conns": "16",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 205757615673,
+"instructions": 179549079192,
+"LLC-loads": 665868997,
+"LLC-load-misses": 12689768,
+"Exp": "Custom2",
+"Conns": "16",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 316648058975,
+"instructions": 311043811563,
+"LLC-loads": 781154186,
+"LLC-load-misses": 24483797,
+"Exp": "RSS",
+"Conns": "32",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 254015269586,
+"instructions": 208371402946,
+"LLC-loads": 769953560,
+"LLC-load-misses": 14075336,
+"Exp": "RPS",
+"Conns": "32",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 225294589394,
+"instructions": 186058968485,
+"LLC-loads": 711889495,
+"LLC-load-misses": 10658000,
+"Exp": "Custom2",
+"Conns": "32",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 318522218011,
+"instructions": 314552232676,
+"LLC-loads": 787805472,
+"LLC-load-misses": 25049576,
+"Exp": "RSS",
+"Conns": "64",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 265526211249,
+"instructions": 215301521679,
+"LLC-loads": 771552751,
+"LLC-load-misses": 17692447,
+"Exp": "RPS",
+"Conns": "64",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 240207607167,
+"instructions": 193322520799,
+"LLC-loads": 730340342,
+"LLC-load-misses": 12000808,
+"Exp": "Custom2",
+"Conns": "64",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 317951879579,
+"instructions": 313180192030,
+"LLC-loads": 792385867,
+"LLC-load-misses": 24902596,
+"Exp": "RSS",
+"Conns": "128",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 121795299730,
+"instructions": 123728720280,
+"LLC-loads": 503961050,
+"LLC-load-misses": 6234642,
+"Exp": "RPS",
+"Conns": "128",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 238688172943,
+"instructions": 193307033992,
+"LLC-loads": 724115178,
+"LLC-load-misses": 11213895,
+"Exp": "Custom2",
+"Conns": "128",
+"Rep": "1"
+},
+{
+"Type": "FULL",
+"cycles": 81031185711,
+"instructions": 83741365944,
+"LLC-loads": 215118486,
+"LLC-load-misses": 872735,
+"Exp": "RSS",
+"Conns": "1",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 86175359733,
+"instructions": 78759256024,
+"LLC-loads": 251819487,
+"LLC-load-misses": 1385134,
+"Exp": "RPS",
+"Conns": "1",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 86682529648,
+"instructions": 77907948376,
+"LLC-loads": 260000298,
+"LLC-load-misses": 1059596,
+"Exp": "Custom2",
+"Conns": "1",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 55061646462,
+"instructions": 67176981963,
+"LLC-loads": 153046994,
+"LLC-load-misses": 1048028,
+"Exp": "RSS",
+"Conns": "2",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 166980159467,
+"instructions": 142557267701,
+"LLC-loads": 508748663,
+"LLC-load-misses": 3097606,
+"Exp": "RPS",
+"Conns": "2",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 104360900342,
+"instructions": 92859004003,
+"LLC-loads": 347979356,
+"LLC-load-misses": 2228342,
+"Exp": "Custom2",
+"Conns": "2",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 132344330645,
+"instructions": 145918704401,
+"LLC-loads": 358624087,
+"LLC-load-misses": 4075113,
+"Exp": "RSS",
+"Conns": "4",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 149508238449,
+"instructions": 137539628396,
+"LLC-loads": 514434236,
+"LLC-load-misses": 5576797,
+"Exp": "RPS",
+"Conns": "4",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 136813147601,
+"instructions": 132597318879,
+"LLC-loads": 469410819,
+"LLC-load-misses": 3773338,
+"Exp": "Custom2",
+"Conns": "4",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 219547672154,
+"instructions": 223815388737,
+"LLC-loads": 536729963,
+"LLC-load-misses": 12187778,
+"Exp": "RSS",
+"Conns": "8",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 126740450125,
+"instructions": 127190494133,
+"LLC-loads": 518596824,
+"LLC-load-misses": 5868636,
+"Exp": "RPS",
+"Conns": "8",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 136666481917,
+"instructions": 131521373672,
+"LLC-loads": 488552525,
+"LLC-load-misses": 4907965,
+"Exp": "Custom2",
+"Conns": "8",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 256214991646,
+"instructions": 241068380480,
+"LLC-loads": 602715824,
+"LLC-load-misses": 12434725,
+"Exp": "RSS",
+"Conns": "16",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 261656009621,
+"instructions": 214711962481,
+"LLC-loads": 774798265,
+"LLC-load-misses": 17947119,
+"Exp": "RPS",
+"Conns": "16",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 183723976459,
+"instructions": 164268103069,
+"LLC-loads": 619278188,
+"LLC-load-misses": 6989220,
+"Exp": "Custom2",
+"Conns": "16",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 257181784224,
+"instructions": 243096004170,
+"LLC-loads": 596000502,
+"LLC-load-misses": 12844388,
+"Exp": "RSS",
+"Conns": "32",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 261203535474,
+"instructions": 213067921360,
+"LLC-loads": 782290320,
+"LLC-load-misses": 18778153,
+"Exp": "RPS",
+"Conns": "32",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 195518462969,
+"instructions": 167367770830,
+"LLC-loads": 645333764,
+"LLC-load-misses": 9353190,
+"Exp": "Custom2",
+"Conns": "32",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 260301137827,
+"instructions": 243867041589,
+"LLC-loads": 593702479,
+"LLC-load-misses": 14062539,
+"Exp": "RSS",
+"Conns": "64",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 242433737423,
+"instructions": 202560633337,
+"LLC-loads": 744969900,
+"LLC-load-misses": 15322246,
+"Exp": "RPS",
+"Conns": "64",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 229626198758,
+"instructions": 189376121596,
+"LLC-loads": 705278314,
+"LLC-load-misses": 10851860,
+"Exp": "Custom2",
+"Conns": "64",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 317317286521,
+"instructions": 311190257393,
+"LLC-loads": 783382113,
+"LLC-load-misses": 24859308,
+"Exp": "RSS",
+"Conns": "128",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 277405219681,
+"instructions": 215156666363,
+"LLC-loads": 791585731,
+"LLC-load-misses": 18537136,
+"Exp": "RPS",
+"Conns": "128",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 218875074600,
+"instructions": 183955438454,
+"LLC-loads": 679927585,
+"LLC-load-misses": 10151757,
+"Exp": "Custom2",
+"Conns": "128",
+"Rep": "2"
+},
+{
+"Type": "FULL",
+"cycles": 81684681870,
+"instructions": 84164770902,
+"LLC-loads": 203547991,
+"LLC-load-misses": 1033072,
+"Exp": "RSS",
+"Conns": "1",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 86885043563,
+"instructions": 79249875262,
+"LLC-loads": 250262508,
+"LLC-load-misses": 1326653,
+"Exp": "RPS",
+"Conns": "1",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 87239785744,
+"instructions": 78348709965,
+"LLC-loads": 256048140,
+"LLC-load-misses": 935507,
+"Exp": "Custom2",
+"Conns": "1",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 158577706106,
+"instructions": 162470371393,
+"LLC-loads": 417286677,
+"LLC-load-misses": 4355559,
+"Exp": "RSS",
+"Conns": "2",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 172102718979,
+"instructions": 147237720554,
+"LLC-loads": 505621769,
+"LLC-load-misses": 3259442,
+"Exp": "RPS",
+"Conns": "2",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 101298449629,
+"instructions": 93607920021,
+"LLC-loads": 327547472,
+"LLC-load-misses": 1745275,
+"Exp": "Custom2",
+"Conns": "2",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 235710704317,
+"instructions": 233377530950,
+"LLC-loads": 588064361,
+"LLC-load-misses": 11614787,
+"Exp": "RSS",
+"Conns": "4",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 150847174161,
+"instructions": 140083140119,
+"LLC-loads": 537931063,
+"LLC-load-misses": 5250497,
+"Exp": "RPS",
+"Conns": "4",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 189272869709,
+"instructions": 162157359726,
+"LLC-loads": 581670692,
+"LLC-load-misses": 4176839,
+"Exp": "Custom2",
+"Conns": "4",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 214467147707,
+"instructions": 217388087890,
+"LLC-loads": 557281612,
+"LLC-load-misses": 11674417,
+"Exp": "RSS",
+"Conns": "8",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 248202608053,
+"instructions": 207308755871,
+"LLC-loads": 742856048,
+"LLC-load-misses": 14403912,
+"Exp": "RPS",
+"Conns": "8",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 131012552571,
+"instructions": 127058716112,
+"LLC-loads": 471548859,
+"LLC-load-misses": 4114274,
+"Exp": "Custom2",
+"Conns": "8",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 253742381143,
+"instructions": 246941915280,
+"LLC-loads": 589857997,
+"LLC-load-misses": 13232704,
+"Exp": "RSS",
+"Conns": "16",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 251845721454,
+"instructions": 206273358821,
+"LLC-loads": 741482352,
+"LLC-load-misses": 14668296,
+"Exp": "RPS",
+"Conns": "16",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 187216222626,
+"instructions": 169240564806,
+"LLC-loads": 642830963,
+"LLC-load-misses": 7475095,
+"Exp": "Custom2",
+"Conns": "16",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 317007115191,
+"instructions": 312230998606,
+"LLC-loads": 784759391,
+"LLC-load-misses": 24105127,
+"Exp": "RSS",
+"Conns": "32",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 249267161070,
+"instructions": 206690713011,
+"LLC-loads": 762508568,
+"LLC-load-misses": 19219887,
+"Exp": "RPS",
+"Conns": "32",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 212360643688,
+"instructions": 176629570780,
+"LLC-loads": 650848259,
+"LLC-load-misses": 8565471,
+"Exp": "Custom2",
+"Conns": "32",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 318281781069,
+"instructions": 313039976240,
+"LLC-loads": 771637679,
+"LLC-load-misses": 25423705,
+"Exp": "RSS",
+"Conns": "64",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 261587229282,
+"instructions": 212643415487,
+"LLC-loads": 767182975,
+"LLC-load-misses": 18728539,
+"Exp": "RPS",
+"Conns": "64",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 220695912417,
+"instructions": 183527578681,
+"LLC-loads": 685557502,
+"LLC-load-misses": 10659707,
+"Exp": "Custom2",
+"Conns": "64",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 259759511183,
+"instructions": 243341245795,
+"LLC-loads": 597746940,
+"LLC-load-misses": 13661677,
+"Exp": "RSS",
+"Conns": "128",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 277685709842,
+"instructions": 217225459041,
+"LLC-loads": 787190188,
+"LLC-load-misses": 18101927,
+"Exp": "RPS",
+"Conns": "128",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 220250449415,
+"instructions": 182449859356,
+"LLC-loads": 688454030,
+"LLC-load-misses": 10328777,
+"Exp": "Custom2",
+"Conns": "128",
+"Rep": "3"
+},
+{
+"Type": "FULL",
+"cycles": 81429604416,
+"instructions": 83132315087,
+"LLC-loads": 219217561,
+"LLC-load-misses": 1136839,
+"Exp": "RSS",
+"Conns": "1",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 86971914707,
+"instructions": 81173036662,
+"LLC-loads": 242092430,
+"LLC-load-misses": 1035512,
+"Exp": "RPS",
+"Conns": "1",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 87027714875,
+"instructions": 78824387576,
+"LLC-loads": 260932976,
+"LLC-load-misses": 1088394,
+"Exp": "Custom2",
+"Conns": "1",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 156642258449,
+"instructions": 159878397849,
+"LLC-loads": 408289923,
+"LLC-load-misses": 4470910,
+"Exp": "RSS",
+"Conns": "2",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 171444089221,
+"instructions": 144440396583,
+"LLC-loads": 520733316,
+"LLC-load-misses": 3495314,
+"Exp": "RPS",
+"Conns": "2",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 84891323796,
+"instructions": 80168682543,
+"LLC-loads": 281393546,
+"LLC-load-misses": 1489137,
+"Exp": "Custom2",
+"Conns": "2",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 138226324197,
+"instructions": 147484799550,
+"LLC-loads": 366531524,
+"LLC-load-misses": 3981406,
+"Exp": "RSS",
+"Conns": "4",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 268640959140,
+"instructions": 211626666142,
+"LLC-loads": 763820171,
+"LLC-load-misses": 12662798,
+"Exp": "RPS",
+"Conns": "4",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 137388202069,
+"instructions": 126854338267,
+"LLC-loads": 451876750,
+"LLC-load-misses": 2885184,
+"Exp": "Custom2",
+"Conns": "4",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 203516617536,
+"instructions": 210754463488,
+"LLC-loads": 535091276,
+"LLC-load-misses": 10720921,
+"Exp": "RSS",
+"Conns": "8",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 241903521565,
+"instructions": 205943814263,
+"LLC-loads": 749856468,
+"LLC-load-misses": 14069595,
+"Exp": "RPS",
+"Conns": "8",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 118127779507,
+"instructions": 117130967596,
+"LLC-loads": 461407656,
+"LLC-load-misses": 4615970,
+"Exp": "Custom2",
+"Conns": "8",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 228354302083,
+"instructions": 231424103939,
+"LLC-loads": 564282732,
+"LLC-load-misses": 12395743,
+"Exp": "RSS",
+"Conns": "16",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 122717174481,
+"instructions": 127395955167,
+"LLC-loads": 514716205,
+"LLC-load-misses": 6029751,
+"Exp": "RPS",
+"Conns": "16",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 212236058244,
+"instructions": 183235113003,
+"LLC-loads": 679114289,
+"LLC-load-misses": 12034295,
+"Exp": "Custom2",
+"Conns": "16",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 316987536920,
+"instructions": 310975863168,
+"LLC-loads": 774640262,
+"LLC-load-misses": 24363957,
+"Exp": "RSS",
+"Conns": "32",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 249557384948,
+"instructions": 207219838068,
+"LLC-loads": 762154691,
+"LLC-load-misses": 18789102,
+"Exp": "RPS",
+"Conns": "32",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 222488946715,
+"instructions": 184769215384,
+"LLC-loads": 686764790,
+"LLC-load-misses": 9256182,
+"Exp": "Custom2",
+"Conns": "32",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 318677138684,
+"instructions": 315419510277,
+"LLC-loads": 778591274,
+"LLC-load-misses": 25337509,
+"Exp": "RSS",
+"Conns": "64",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 263653089029,
+"instructions": 212849177911,
+"LLC-loads": 772763855,
+"LLC-load-misses": 18541780,
+"Exp": "RPS",
+"Conns": "64",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 225752565458,
+"instructions": 188496287743,
+"LLC-loads": 697198336,
+"LLC-load-misses": 9564095,
+"Exp": "Custom2",
+"Conns": "64",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 312092889880,
+"instructions": 304088999314,
+"LLC-loads": 765673287,
+"LLC-load-misses": 24202047,
+"Exp": "RSS",
+"Conns": "128",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 122717080007,
+"instructions": 125572549497,
+"LLC-loads": 505622710,
+"LLC-load-misses": 6675328,
+"Exp": "RPS",
+"Conns": "128",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 118757602312,
+"instructions": 119247274268,
+"LLC-loads": 479714180,
+"LLC-load-misses": 6601125,
+"Exp": "Custom2",
+"Conns": "128",
+"Rep": "4"
+},
+{
+"Type": "FULL",
+"cycles": 81604436907,
+"instructions": 83632937818,
+"LLC-loads": 213498297,
+"LLC-load-misses": 834596,
+"Exp": "RSS",
+"Conns": "1",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 86060031031,
+"instructions": 77807096221,
+"LLC-loads": 250209264,
+"LLC-load-misses": 1317320,
+"Exp": "RPS",
+"Conns": "1",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 86450612101,
+"instructions": 77583965344,
+"LLC-loads": 253702256,
+"LLC-load-misses": 987583,
+"Exp": "Custom2",
+"Conns": "1",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 159368352865,
+"instructions": 164102926565,
+"LLC-loads": 400586100,
+"LLC-load-misses": 4440367,
+"Exp": "RSS",
+"Conns": "2",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 172304714095,
+"instructions": 145854361684,
+"LLC-loads": 522154627,
+"LLC-load-misses": 3507501,
+"Exp": "RPS",
+"Conns": "2",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 86590797153,
+"instructions": 83392845091,
+"LLC-loads": 297950699,
+"LLC-load-misses": 1427351,
+"Exp": "Custom2",
+"Conns": "2",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 141557028390,
+"instructions": 146766788684,
+"LLC-loads": 370691563,
+"LLC-load-misses": 3971785,
+"Exp": "RSS",
+"Conns": "4",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 151175180182,
+"instructions": 140994098562,
+"LLC-loads": 520742890,
+"LLC-load-misses": 6009758,
+"Exp": "RPS",
+"Conns": "4",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 137305575376,
+"instructions": 130262811771,
+"LLC-loads": 446431988,
+"LLC-load-misses": 2609290,
+"Exp": "Custom2",
+"Conns": "4",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 219468790314,
+"instructions": 229387164004,
+"LLC-loads": 554744499,
+"LLC-load-misses": 12369579,
+"Exp": "RSS",
+"Conns": "8",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 250940910135,
+"instructions": 209066389218,
+"LLC-loads": 773186740,
+"LLC-load-misses": 17258251,
+"Exp": "RPS",
+"Conns": "8",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 183219506427,
+"instructions": 166146149441,
+"LLC-loads": 608311803,
+"LLC-load-misses": 6590220,
+"Exp": "Custom2",
+"Conns": "8",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 129906006428,
+"instructions": 143279313568,
+"LLC-loads": 353446089,
+"LLC-load-misses": 4487816,
+"Exp": "RSS",
+"Conns": "16",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 241885008704,
+"instructions": 202170113720,
+"LLC-loads": 761935104,
+"LLC-load-misses": 14563552,
+"Exp": "RPS",
+"Conns": "16",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 137891744599,
+"instructions": 130602391474,
+"LLC-loads": 504484512,
+"LLC-load-misses": 5396221,
+"Exp": "Custom2",
+"Conns": "16",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 257027773322,
+"instructions": 244563440327,
+"LLC-loads": 582584981,
+"LLC-load-misses": 13249282,
+"Exp": "RSS",
+"Conns": "32",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 264679865623,
+"instructions": 210474864607,
+"LLC-loads": 771049984,
+"LLC-load-misses": 14337314,
+"Exp": "RPS",
+"Conns": "32",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 221376287387,
+"instructions": 185509979791,
+"LLC-loads": 689476869,
+"LLC-load-misses": 9805423,
+"Exp": "Custom2",
+"Conns": "32",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 315379958455,
+"instructions": 311024454378,
+"LLC-loads": 771783682,
+"LLC-load-misses": 24534326,
+"Exp": "RSS",
+"Conns": "64",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 252700988523,
+"instructions": 208898789295,
+"LLC-loads": 741838006,
+"LLC-load-misses": 14415447,
+"Exp": "RPS",
+"Conns": "64",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 208243490716,
+"instructions": 178269231370,
+"LLC-loads": 652178796,
+"LLC-load-misses": 8524323,
+"Exp": "Custom2",
+"Conns": "64",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 318588595131,
+"instructions": 311999738728,
+"LLC-loads": 786662908,
+"LLC-load-misses": 25561739,
+"Exp": "RSS",
+"Conns": "128",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 265289319659,
+"instructions": 213639392196,
+"LLC-loads": 772816424,
+"LLC-load-misses": 17989597,
+"Exp": "RPS",
+"Conns": "128",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 129622127739,
+"instructions": 128086297343,
+"LLC-loads": 509735174,
+"LLC-load-misses": 6346132,
+"Exp": "Custom2",
+"Conns": "128",
+"Rep": "5"
+},
+{
+"Type": "FULL",
+"cycles": 81562297589,
+"instructions": 84534516232,
+"LLC-loads": 214765856,
+"LLC-load-misses": 932587,
+"Exp": "RSS",
+"Conns": "1",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 86281483650,
+"instructions": 80100043589,
+"LLC-loads": 249671196,
+"LLC-load-misses": 1272916,
+"Exp": "RPS",
+"Conns": "1",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 88107480461,
+"instructions": 84347740181,
+"LLC-loads": 252750643,
+"LLC-load-misses": 1185515,
+"Exp": "Custom2",
+"Conns": "1",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 159111505608,
+"instructions": 163934955712,
+"LLC-loads": 404650699,
+"LLC-load-misses": 4210509,
+"Exp": "RSS",
+"Conns": "2",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 172919005485,
+"instructions": 144782210088,
+"LLC-loads": 508805439,
+"LLC-load-misses": 3505298,
+"Exp": "RPS",
+"Conns": "2",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 180541546795,
+"instructions": 159862665307,
+"LLC-loads": 568577174,
+"LLC-load-misses": 19332594,
+"Exp": "Custom2",
+"Conns": "2",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 140020989351,
+"instructions": 146697808477,
+"LLC-loads": 353321319,
+"LLC-load-misses": 4070577,
+"Exp": "RSS",
+"Conns": "4",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 149939792937,
+"instructions": 140321470810,
+"LLC-loads": 523964999,
+"LLC-load-misses": 5772521,
+"Exp": "RPS",
+"Conns": "4",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 85837739343,
+"instructions": 81659491919,
+"LLC-loads": 309632971,
+"LLC-load-misses": 2061229,
+"Exp": "Custom2",
+"Conns": "4",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 130948660660,
+"instructions": 141941698872,
+"LLC-loads": 360083275,
+"LLC-load-misses": 4678989,
+"Exp": "RSS",
+"Conns": "8",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 243457434421,
+"instructions": 208092440189,
+"LLC-loads": 735596609,
+"LLC-load-misses": 13258340,
+"Exp": "RPS",
+"Conns": "8",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 139805903086,
+"instructions": 133429938565,
+"LLC-loads": 496091909,
+"LLC-load-misses": 5480335,
+"Exp": "Custom2",
+"Conns": "8",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 317403974378,
+"instructions": 315358563754,
+"LLC-loads": 783522245,
+"LLC-load-misses": 24577184,
+"Exp": "RSS",
+"Conns": "16",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 148800777453,
+"instructions": 138829046531,
+"LLC-loads": 505386816,
+"LLC-load-misses": 6215841,
+"Exp": "RPS",
+"Conns": "16",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 139174847756,
+"instructions": 133046480253,
+"LLC-loads": 505634082,
+"LLC-load-misses": 4829013,
+"Exp": "Custom2",
+"Conns": "16",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 317638204514,
+"instructions": 313641257580,
+"LLC-loads": 772228209,
+"LLC-load-misses": 24540295,
+"Exp": "RSS",
+"Conns": "32",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 262261896041,
+"instructions": 214875464187,
+"LLC-loads": 762207055,
+"LLC-load-misses": 16949395,
+"Exp": "RPS",
+"Conns": "32",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 116985936044,
+"instructions": 117055666140,
+"LLC-loads": 468747778,
+"LLC-load-misses": 5088280,
+"Exp": "Custom2",
+"Conns": "32",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 312149508932,
+"instructions": 305351075561,
+"LLC-loads": 767664530,
+"LLC-load-misses": 24197106,
+"Exp": "RSS",
+"Conns": "64",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 263608011953,
+"instructions": 215509570454,
+"LLC-loads": 771615853,
+"LLC-load-misses": 18786510,
+"Exp": "RPS",
+"Conns": "64",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 218365386782,
+"instructions": 183589941045,
+"LLC-loads": 678924822,
+"LLC-load-misses": 9898822,
+"Exp": "Custom2",
+"Conns": "64",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 258758078322,
+"instructions": 243812190935,
+"LLC-loads": 601280070,
+"LLC-load-misses": 14054427,
+"Exp": "RSS",
+"Conns": "128",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 265976509814,
+"instructions": 215557346744,
+"LLC-loads": 760668414,
+"LLC-load-misses": 17916896,
+"Exp": "RPS",
+"Conns": "128",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 241865241436,
+"instructions": 197288376023,
+"LLC-loads": 713830271,
+"LLC-load-misses": 11834729,
+"Exp": "Custom2",
+"Conns": "128",
+"Rep": "6"
+},
+{
+"Type": "FULL",
+"cycles": 81343338900,
+"instructions": 83355995691,
+"LLC-loads": 219373148,
+"LLC-load-misses": 1410203,
+"Exp": "RSS",
+"Conns": "1",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 86463054924,
+"instructions": 79210783452,
+"LLC-loads": 249491459,
+"LLC-load-misses": 1494867,
+"Exp": "RPS",
+"Conns": "1",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 87508695596,
+"instructions": 80196528086,
+"LLC-loads": 243054323,
+"LLC-load-misses": 1010063,
+"Exp": "Custom2",
+"Conns": "1",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 160186173864,
+"instructions": 163196778223,
+"LLC-loads": 413139008,
+"LLC-load-misses": 4342763,
+"Exp": "RSS",
+"Conns": "2",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 67633724591,
+"instructions": 66312657823,
+"LLC-loads": 239474114,
+"LLC-load-misses": 1414777,
+"Exp": "RPS",
+"Conns": "2",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 157181821685,
+"instructions": 135680095689,
+"LLC-loads": 495476863,
+"LLC-load-misses": 3061939,
+"Exp": "Custom2",
+"Conns": "2",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 237188495898,
+"instructions": 237964098036,
+"LLC-loads": 586284314,
+"LLC-load-misses": 12251954,
+"Exp": "RSS",
+"Conns": "4",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 268375976227,
+"instructions": 212031634557,
+"LLC-loads": 759950806,
+"LLC-load-misses": 12914291,
+"Exp": "RPS",
+"Conns": "4",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 137751872543,
+"instructions": 128748506315,
+"LLC-loads": 493711321,
+"LLC-load-misses": 3660579,
+"Exp": "Custom2",
+"Conns": "4",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 104433723073,
+"instructions": 126339944308,
+"LLC-loads": 302738101,
+"LLC-load-misses": 4817851,
+"Exp": "RSS",
+"Conns": "8",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 124617764542,
+"instructions": 126543284928,
+"LLC-loads": 522847731,
+"LLC-load-misses": 5750878,
+"Exp": "RPS",
+"Conns": "8",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 133317200340,
+"instructions": 126970040482,
+"LLC-loads": 479273862,
+"LLC-load-misses": 4768565,
+"Exp": "Custom2",
+"Conns": "8",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 257402016977,
+"instructions": 241953642209,
+"LLC-loads": 598623528,
+"LLC-load-misses": 12877761,
+"Exp": "RSS",
+"Conns": "16",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 249229410127,
+"instructions": 208926179842,
+"LLC-loads": 762903798,
+"LLC-load-misses": 19031669,
+"Exp": "RPS",
+"Conns": "16",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 221294525394,
+"instructions": 185487629267,
+"LLC-loads": 695599748,
+"LLC-load-misses": 11091675,
+"Exp": "Custom2",
+"Conns": "16",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 258246448113,
+"instructions": 243231634119,
+"LLC-loads": 604482518,
+"LLC-load-misses": 13163505,
+"Exp": "RSS",
+"Conns": "32",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 261713307169,
+"instructions": 211222678816,
+"LLC-loads": 793796938,
+"LLC-load-misses": 19609347,
+"Exp": "RPS",
+"Conns": "32",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 228574025881,
+"instructions": 189755123646,
+"LLC-loads": 700408651,
+"LLC-load-misses": 9508239,
+"Exp": "Custom2",
+"Conns": "32",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 260747800563,
+"instructions": 247144401549,
+"LLC-loads": 599757394,
+"LLC-load-misses": 13332619,
+"Exp": "RSS",
+"Conns": "64",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 265782431470,
+"instructions": 212921368708,
+"LLC-loads": 783891084,
+"LLC-load-misses": 18980666,
+"Exp": "RPS",
+"Conns": "64",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 227585308453,
+"instructions": 186489861489,
+"LLC-loads": 683153694,
+"LLC-load-misses": 10388560,
+"Exp": "Custom2",
+"Conns": "64",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 261458319906,
+"instructions": 242914772658,
+"LLC-loads": 590422168,
+"LLC-load-misses": 13881677,
+"Exp": "RSS",
+"Conns": "128",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 276877068507,
+"instructions": 216370195046,
+"LLC-loads": 787246619,
+"LLC-load-misses": 18630816,
+"Exp": "RPS",
+"Conns": "128",
+"Rep": "7"
+},
+{
+"Type": "FULL",
+"cycles": 238259561721,
+"instructions": 194699448778,
+"LLC-loads": 716377385,
+"LLC-load-misses": 11935927,
+"Exp": "Custom2",
+"Conns": "128",
+"Rep": "7"
+}
+]
