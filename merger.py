@@ -29,7 +29,7 @@ for i in range(reps):
 
 files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json", "perf.json", "perf_stat.json"]
 
-os.mkdir("./summaries")
+os.mkdir("/home/hema/Custom_Packet_Steering/summaries")
 
 
 for f in files:
@@ -40,12 +40,12 @@ for f in files:
     file_name = "summary_"+f
 
 
-    with open("./summaries/"+file_name, "w") as file:
+    with open("/home/hema/Custom_Packet_Steering/summaries/"+file_name, "w") as file:
 
         for exp in directory:
-            if os.path.isfile("./data/" + base_dir + "/" + exp+"/"+f) is False:
+            if os.path.isfile("/home/hema/Custom_Packet_Steering/data/" + base_dir + "/" + exp+"/"+f) is False:
                 continue
-            with open("./data/" + base_dir + "/"+exp+"/"+f) as json_file:
+            with open("/home/hema/Custom_Packet_Steering/data/" + base_dir + "/"+exp+"/"+f) as json_file:
                 print(exp + " " + f)
                 d = json.load(json_file)
                 for elem in d:
@@ -67,7 +67,7 @@ for curr_dir in directory:
     new_json[acc] = dict()
 print(new_json)
 
-with open("./summaries/summary_packet_cnt.json") as f:
+with open("/home/hema/Custom_Packet_Steering/summaries/summary_packet_cnt.json") as f:
     d = json.load(f)
 
     for elem in d:
@@ -83,7 +83,7 @@ with open("./summaries/summary_packet_cnt.json") as f:
 
 
 
-with open("./summaries/summary_softirq.json") as f:
+with open("/home/hema/Custom_Packet_Steering/summaries/summary_softirq.json") as f:
     d = json.load(f)
 
     for elem in d:
@@ -109,7 +109,7 @@ for key in new_json.keys():
     tmp["softirqs"] = new_json[key]["softirqs"]
     final_json.append(tmp)
 
-with open("./summaries/summary_sirq_per_pkt.json", "w") as f:
+with open("/home/hema/Custom_Packet_Steering/summaries/summary_sirq_per_pkt.json", "w") as f:
     json.dump(final_json, f, indent=0)
 
 

@@ -272,6 +272,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 			//printk("AHA!");
 
 		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) 
+			//	|| skb_queue_empty(tcpu_iq) //Original Condition
 				|| (!test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
 				&& tcpu_iq && skb_queue_empty(tcpu_iq) )
 				|| (tcpu_iq && (skb_queue_len_lockless(tcpu_iq) > 900))

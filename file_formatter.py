@@ -493,7 +493,7 @@ if argc < 3:
 # get folder name from command line
 
 # [TODO] Check if the directory exists
-folder = "./data/" + sys.argv[1] + "/"
+folder = "/home/hema/Custom_Packet_Steering/data/" + sys.argv[1] + "/"
 
 
 for target in sys.argv[2:]:

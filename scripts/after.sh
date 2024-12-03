@@ -3,6 +3,8 @@
 name=${1}
 intf=${2:-ens10f1}
 
+current_path=/home/hema/Custom_Packet_Steering
+
 ethtool -S $intf | grep 'packets\|dropped:' > after_pkt.txt
 cat /proc/softirqs | grep NET_ > after_soft_irq.txt 
 cat /proc/interrupts | grep -f tmp.txt > after_irq.txt 
@@ -13,13 +15,13 @@ if test -f /proc/pkt_steer_module; then
     cat /proc/pkt_steer_module > after_pkt_steer.txt
 fi
 
-cat before_pkt.txt after_pkt.txt > data/$name/packet_cnt.json
-cat before_soft_irq.txt after_soft_irq.txt > data/$name/softirq.json
-cat before_irq.txt after_irq.txt > data/$name/irq.json
-cat before_softnet.txt after_softnet.txt > data/$name/softnet.json
-cat before_proc_stat.txt after_proc_stat.txt > data/$name/proc_stat.json
+cat before_pkt.txt after_pkt.txt > $current_path/data/$name/packet_cnt.json
+cat before_soft_irq.txt after_soft_irq.txt > $current_path/data/$name/softirq.json
+cat before_irq.txt after_irq.txt > $current_path/data/$name/irq.json
+cat before_softnet.txt after_softnet.txt > $current_path/data/$name/softnet.json
+cat before_proc_stat.txt after_proc_stat.txt > $current_path/data/$name/proc_stat.json
 if test -f /proc/pkt_steer_module; then
-    cat before_pkt_steer.txt after_pkt_steer.txt > data/$name/pkt_steer.json
+    cat before_pkt_steer.txt after_pkt_steer.txt > $current_path/data/$name/pkt_steer.json
 fi
 
 rm before_pkt.txt
