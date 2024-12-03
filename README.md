@@ -1,8 +1,22 @@
 # Custom_Packet_Steering
 Introduce pluggable packet steering interface and implement a protocol that minimizes Inter-Processor Interrupts
 
+# How to Access Graphs
 
-# Setup
+1. Clone the repository
+```
+git clone https://github.com/hema2601/Custom_Packet_Steering.git
+```
+2. Run a webserver in the repository's root directory
+  ```
+cd Custom_Packet_Steering
+python3 -m http.server 8090
+```
+3. Access Webserver from browser (if on local machine, use 127.0.0.1:8090)
+4. Type in the path in the data directory of the data you want to see (Example: FinalData_TermProject_12-03/BigMsg_GRO_Comb)
+5. Press 'Get Value!' Button 
+
+# Setup (Work in Progress)
 
 Using linux kernel 6.10.8
 
