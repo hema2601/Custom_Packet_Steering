@@ -21,9 +21,10 @@ done
 
 for f in /sys/class/net/$INTF/queues/rx-*/rps_cpus
 do
-	mask=$(printf '%x\n' "$((2#$mask))")
-	echo $mask
-	echo $( add_comma_every_eight $mask ) > $f
+	echo $f
+	value=$(printf '%x\n' "$((2#$mask))")
+	echo $value
+	echo $( add_comma_every_eight $value ) > $f
 done
 
 #set_irq_affinity.sh $INTF

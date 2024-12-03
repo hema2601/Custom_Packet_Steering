@@ -1,0 +1,355 @@
+diff -crB ../linux-6.10.8/include/linux/netdevice.h linux-6.10.8/include/linux/netdevice.h
+*** ../linux-6.10.8/include/linux/netdevice.h	2024-09-04 20:30:16.000000000 +0900
+--- linux-6.10.8/include/linux/netdevice.h	2024-10-22 12:39:48.175203873 +0900
+***************
+*** 3240,3246 ****
+--- 3240,3251 ----
+  	struct softnet_data	*rps_ipi_next;
+  	unsigned int		cpu;
+  	unsigned int		input_queue_tail;
++ 
++ 
+  #endif
++     //[HEMA] Define packet steering ops
++     struct pkt_steer_ops *pkt_steer_ops;
++     //=================================
+  	struct sk_buff_head	input_pkt_queue;
+  	struct napi_struct	backlog;
+  
+diff -crB ../linux-6.10.8/include/net/hotdata.h linux-6.10.8/include/net/hotdata.h
+*** ../linux-6.10.8/include/net/hotdata.h	2024-09-04 20:30:16.000000000 +0900
+--- linux-6.10.8/include/net/hotdata.h	2024-10-22 12:39:48.175203873 +0900
+***************
+*** 41,46 ****
+--- 41,50 ----
+  	int			sysctl_max_skb_frags;
+  	int			sysctl_skb_defer_max;
+  	int			sysctl_mem_pcpu_rsv;
++     //[HEMA] packet steering protocol
++     struct pkt_steer_ops *pkt_steer_ops;
++     //==============================
++ 
+  };
+  
+  #define inet_ehash_secret	net_hotdata.tcp_protocol.secret
+Only in linux-6.10.8/include/net: pkt_steer_ops.h
+Only in linux-6.10.8/include/net: .pkt_steer_ops.h.swp
+diff -crB ../linux-6.10.8/net/core/dev.c linux-6.10.8/net/core/dev.c
+*** ../linux-6.10.8/net/core/dev.c	2024-09-04 20:30:16.000000000 +0900
+--- linux-6.10.8/net/core/dev.c	2024-10-22 12:50:45.111777072 +0900
+***************
+*** 4565,4570 ****
+--- 4565,4573 ----
+  static int get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
+  		       struct rps_dev_flow **rflowp)
+  {
++ 	//[HEMA] Add local variables
++ 	struct softnet_data *sd;
++ 	//===========================
+  	const struct rps_sock_flow_table *sock_flow_table;
+  	struct netdev_rx_queue *rxqueue = dev->_rx;
+  	struct rps_dev_flow_table *flow_table;
+***************
+*** 4599,4604 ****
+--- 4602,4610 ----
+  		goto done;
+  
+  	sock_flow_table = rcu_dereference(net_hotdata.rps_sock_flow_table);
++ 	//[HEMA] Get sd to access pkt steering ops
++ 	sd = &per_cpu(softnet_data, smp_processor_id());
++ 	//=======================================
+  	if (flow_table && sock_flow_table) {
+  		struct rps_dev_flow *rflow;
+  		u32 next_cpu;
+***************
+*** 4635,4641 ****
+  		     ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
+  		      rflow->last_qtail)) >= 0)) {
+  			tcpu = next_cpu;
+! 			rflow = set_rps_cpu(dev, skb, rflow, next_cpu);
+  		}
+  
+  		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
+--- 4641,4651 ----
+  		     ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
+  		      rflow->last_qtail)) >= 0)) {
+  			tcpu = next_cpu;
+! 			//[HEMA] Replace with interface
+! 			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, next_cpu);
+! 			//[ORIGINAL]
+! 			//rflow = set_rps_cpu(dev, skb, rflow, next_cpu);
+! 			//=============================================
+  		}
+  
+  		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
+***************
+*** 4844,4851 ****
+  			 * non atomic operation as we own the queue lock.
+  			 */
+  			if (!__test_and_set_bit(NAPI_STATE_SCHED,
+! 						&sd->backlog.state))
+  				napi_schedule_rps(sd);
+  		}
+  		__skb_queue_tail(&sd->input_pkt_queue, skb);
+  		tail = rps_input_queue_tail_incr(sd);
+--- 4854,4866 ----
+  			 * non atomic operation as we own the queue lock.
+  			 */
+  			if (!__test_and_set_bit(NAPI_STATE_SCHED,
+! 						&sd->backlog.state)){
+  				napi_schedule_rps(sd);
++ 			}
++ 
++ 			//[HEMA] Mark as busy since packets will be enqueued on the input_pkt_queue
++ 			if(sd->pkt_steer_ops->mark_as_busy)
++ 				sd->pkt_steer_ops->mark_as_busy();
+  		}
+  		__skb_queue_tail(&sd->input_pkt_queue, skb);
+  		tail = rps_input_queue_tail_incr(sd);
+***************
+*** 5136,5145 ****
+  	if (static_branch_unlikely(&rps_needed)) {
+  		struct rps_dev_flow voidflow, *rflow = &voidflow;
+  		int cpu;
+  
+  		rcu_read_lock();
+! 
+! 		cpu = get_rps_cpu(skb->dev, skb, &rflow);
+  		if (cpu < 0)
+  			cpu = smp_processor_id();
+  
+--- 5151,5164 ----
+  	if (static_branch_unlikely(&rps_needed)) {
+  		struct rps_dev_flow voidflow, *rflow = &voidflow;
+  		int cpu;
++ 		//[HEMA] Get softnet data of this core
++ 		struct softnet_data *sd = &per_cpu(softnet_data, smp_processor_id());
++ 		//====================================
+  
+  		rcu_read_lock();
+! 		//[HEMA] Replace with interface
+! 		cpu = sd->pkt_steer_ops->get_rps_cpu(skb->dev, skb, &rflow);
+! 		//====================================
+  		if (cpu < 0)
+  			cpu = smp_processor_id();
+  
+***************
+*** 5813,5819 ****
+  #ifdef CONFIG_RPS
+  	if (static_branch_unlikely(&rps_needed)) {
+  		struct rps_dev_flow voidflow, *rflow = &voidflow;
+! 		int cpu = get_rps_cpu(skb->dev, skb, &rflow);
+  
+  		if (cpu >= 0) {
+  			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
+--- 5832,5841 ----
+  #ifdef CONFIG_RPS
+  	if (static_branch_unlikely(&rps_needed)) {
+  		struct rps_dev_flow voidflow, *rflow = &voidflow;
+! 		//[HEMA] Apply packet steering interface
+! 		struct softnet_data *sd = &per_cpu(softnet_data, smp_processor_id());
+! 		int cpu = sd->pkt_steer_ops->get_rps_cpu(skb->dev, skb, &rflow);
+! 		//========================================
+  
+  		if (cpu >= 0) {
+  			ret = enqueue_to_backlog(skb, cpu, &rflow->last_qtail);
+***************
+*** 5831,5836 ****
+--- 5853,5861 ----
+  {
+  	struct sk_buff *skb, *next;
+  	struct list_head sublist;
++ 	//[HEMA] local variables
++ 	struct softnet_data *sd;
++ 	//=======================
+  
+  	INIT_LIST_HEAD(&sublist);
+  	list_for_each_entry_safe(skb, next, head, list) {
+***************
+*** 5844,5853 ****
+  
+  	rcu_read_lock();
+  #ifdef CONFIG_RPS
+  	if (static_branch_unlikely(&rps_needed)) {
+  		list_for_each_entry_safe(skb, next, head, list) {
+  			struct rps_dev_flow voidflow, *rflow = &voidflow;
+! 			int cpu = get_rps_cpu(skb->dev, skb, &rflow);
+  
+  			if (cpu >= 0) {
+  				/* Will be handled, remove from list */
+--- 5869,5885 ----
+  
+  	rcu_read_lock();
+  #ifdef CONFIG_RPS
++ 	//[HEMA] Get softnet data of this core
++ 	sd = &per_cpu(softnet_data, smp_processor_id());
++ 	//====================================
+  	if (static_branch_unlikely(&rps_needed)) {
+  		list_for_each_entry_safe(skb, next, head, list) {
+  			struct rps_dev_flow voidflow, *rflow = &voidflow;
+! 			//[HEMA] Replace with interface
+! 			int cpu = sd->pkt_steer_ops->get_rps_cpu(skb->dev, skb, &rflow);
+! 			//[ORIGINAL]
+! 			//int cpu = get_rps_cpu(skb->dev, skb, &rflow);
+! 			//===================================
+  
+  			if (cpu >= 0) {
+  				/* Will be handled, remove from list */
+***************
+*** 6028,6034 ****
+  		sd->rps_ipi_list = NULL;
+  
+  		local_irq_enable();
+! 
+  		/* Send pending IPI's to kick RPS processing on remote cpus. */
+  		net_rps_send_ipi(remsd);
+  	} else
+--- 6060,6066 ----
+  		sd->rps_ipi_list = NULL;
+  
+  		local_irq_enable();
+! 		
+  		/* Send pending IPI's to kick RPS processing on remote cpus. */
+  		net_rps_send_ipi(remsd);
+  	} else
+***************
+*** 6059,6064 ****
+--- 6091,6103 ----
+  		net_rps_action_and_irq_enable(sd);
+  	}
+  
++ 	//[HEMA] Put this napi on the list of active napi sessions
++ 	
++ 	//Removed. Reason: The kernel does not define the core as busy when it is in process_backlog,but rather when it has pkts queued on input_pkt_queue
++ 	//if(sd->pkt_steer_ops->mark_as_busy)
++ 	//	sd->pkt_steer_ops->mark_as_busy();
++ 	//========================================================
++ 
+  	napi->weight = READ_ONCE(net_hotdata.dev_rx_weight);
+  	while (again) {
+  		struct sk_buff *skb;
+***************
+*** 6069,6075 ****
+  			rcu_read_unlock();
+  			if (++work >= quota) {
+  				rps_input_queue_head_add(sd, work);
+! 				return work;
+  			}
+  
+  		}
+--- 6108,6116 ----
+  			rcu_read_unlock();
+  			if (++work >= quota) {
+  				rps_input_queue_head_add(sd, work);
+! 				//[HEMA] Funnel this into out part, instead of direct return
+! 				goto out;
+! 				//==========================================================
+  			}
+  
+  		}
+***************
+*** 6086,6092 ****
+--- 6127,6136 ----
+  			 */
+  			napi->state &= NAPIF_STATE_THREADED;
+  			again = false;
++ 
+  		} else {
++ 			if(sd->pkt_steer_ops->mark_as_idle)
++ 				sd->pkt_steer_ops->mark_as_idle();
+  			skb_queue_splice_tail_init(&sd->input_pkt_queue,
+  						   &sd->process_queue);
+  		}
+***************
+*** 6095,6100 ****
+--- 6139,6151 ----
+  
+  	if (work)
+  		rps_input_queue_head_add(sd, work);
++ //[HEMA] Define new out part to remove from list
++ out:
++ 	//Removed. Reason: The kernel does not define the core as idle when it exits process_backlog,but rather when it has no pkts queued on input_pkt_queue
++ 	//if(sd->pkt_steer_ops->mark_as_idle)
++ 	//	sd->pkt_steer_ops->mark_as_idle();
++ //==============================================
++ 
+  	return work;
+  }
+  
+***************
+*** 6879,6884 ****
+--- 6930,6938 ----
+  start:
+  	sd->in_net_rx_action = true;
+  	local_irq_disable();
++ 	//[HEMA] Update ops
++ 	sd->pkt_steer_ops = READ_ONCE(net_hotdata.pkt_steer_ops);
++ 	//=================
+  	list_splice_init(&sd->poll_list, &list);
+  	local_irq_enable();
+  
+***************
+*** 11883,11888 ****
+--- 11937,11952 ----
+  	.setup			= backlog_napi_setup,
+  };
+  
++ //[HEMA] Standard Packet Steering Ops
++ struct pkt_steer_ops pkt_standard_ops = {
++ 	.get_rps_cpu = get_rps_cpu,
++ 	.set_rps_cpu = set_rps_cpu,
++ 	.mark_as_busy = NULL,
++ 	.mark_as_idle = NULL
++ };
++ EXPORT_SYMBOL(pkt_standard_ops);
++ //===================================
++ 
+  /*
+   *       This is called single threaded during boot, so no need
+   *       to take the rtnl semaphore.
+***************
+*** 11904,11909 ****
+--- 11968,11978 ----
+  	for (i = 0; i < PTYPE_HASH_SIZE; i++)
+  		INIT_LIST_HEAD(&ptype_base[i]);
+  
++ 	//[HEMA] Set standard ops for packet steering
++ 	net_hotdata.pkt_steer_ops = &pkt_standard_ops;
++ 	//===========================================
++ 
++ 
+  	if (register_pernet_subsys(&netdev_net_ops))
+  		goto out;
+  
+***************
+*** 11927,11933 ****
+--- 11996,12007 ----
+  #ifdef CONFIG_RPS
+  		INIT_CSD(&sd->csd, rps_trigger_softirq, sd);
+  		sd->cpu = i;
++ 
+  #endif
++ 		//[HEMA] Init ops in softnet_data
++ 		sd->pkt_steer_ops = &pkt_standard_ops;
++ 		//===============================
++ 
+  		INIT_CSD(&sd->defer_csd, trigger_rx_softirq, sd);
+  		spin_lock_init(&sd->defer_lock);
+  
+Only in linux-6.10.8/net/core: .dev.c.swp
+diff -crB ../linux-6.10.8/net/core/dev.h linux-6.10.8/net/core/dev.h
+*** ../linux-6.10.8/net/core/dev.h	2024-09-04 20:30:16.000000000 +0900
+--- linux-6.10.8/net/core/dev.h	2024-10-22 12:39:48.179204048 +0900
+***************
+*** 6,11 ****
+--- 6,15 ----
+  #include <linux/rwsem.h>
+  #include <linux/netdevice.h>
+  
++ //[HEMA]
++ #include <net/pkt_steer_ops.h>
++ //======================================
++ 
+  struct net;
+  struct netlink_ext_ack;
+  struct cpumask;

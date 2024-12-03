@@ -13,7 +13,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 1 0 0 0 0 $i $intf
+		#./run_mini_project.sh $dir 1 0 0 0 0 $i $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done
@@ -26,7 +26,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 0 1 0 0 0 $i $intf
+		#./run_mini_project.sh $dir 0 1 0 0 0 $i $intf 0 1 1 1
 	done
 	conn=$((conn*2))
 done
@@ -39,7 +39,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 0 0 1 0 0 $i $intf
+		#./run_mini_project.sh $dir 0 0 1 0 0 $i $intf 0 1 1 1
 	done
 	conn=$((conn*2))
 done
@@ -52,7 +52,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 1 1 0 0 0 $i $intf
+		#./run_mini_project.sh $dir 1 1 0 0 0 $i $intf 0 2 0
 	done
 	conn=$((conn*2))
 done
@@ -65,13 +65,13 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 1 0 1 0 0 $i $intf
+#		./run_mini_project.sh $dir 1 0 1 0 0 $i $intf
 	done
 	conn=$((conn*2))
 done
 
-make -C $current_path/module
-insmod $current_path/module/pkt_steer_module.ko
+#make -C $current_path/module
+#insmod $current_path/module/pkt_steer_module.ko
 
 exp_name=Custom1
 conn=1
@@ -81,6 +81,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
+		#./run_mini_project.sh $dir 0 0 0 1 1 $i $intf 0 1 1 1 
 		./run_mini_project.sh $dir 0 0 0 1 1 $i $intf
 	done
 	conn=$((conn*2))
@@ -94,7 +95,8 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 0 0 0 1 2 $i $intf
+		#./run_mini_project.sh $dir 0 0 0 1 4 $i $intf 0 1 1 1 
+		./run_mini_project.sh $dir 0 0 0 1 4 $i $intf 
 	done
 	conn=$((conn*2))
 done
@@ -107,7 +109,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 0 0 0 1 3 $i $intf
+#		./run_mini_project.sh $dir 0 0 0 1 3 $i $intf
 	done
 	conn=$((conn*2))
 done
@@ -120,7 +122,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 1 0 0 1 1 $i $intf
+		#./run_mini_project.sh $dir 1 0 0 1 4 $i $intf 0 2 0
 	done
 	conn=$((conn*2))
 done
@@ -133,7 +135,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 1 0 0 1 2 $i $intf
+#		./run_mini_project.sh $dir 1 0 0 1 2 $i $intf
 	done
 	conn=$((conn*2))
 done
@@ -146,12 +148,12 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		./run_mini_project.sh $dir 1 0 0 1 3 $i $intf
+#		./run_mini_project.sh $dir 1 0 0 1 3 $i $intf
 	done
 	conn=$((conn*2))
 done
 
-rmmod pkt_steer_module
+#rmmod pkt_steer_module
 
 
 rm -r ./summaries

@@ -11,8 +11,11 @@ class Filetype(Enum):
     IPERF       = 4
     SOFTNET     = 5
     PKT_STEER   = 6
+    PROC_STAT   = 7
+    PERF        = 8
+    PERF_STAT   = 9
 
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER'])
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT'])
 
 
 class JsonGenerator:
@@ -22,7 +25,7 @@ class JsonGenerator:
     _tr = {}
 
     def __init__(self, path):
-        print("Open the file: " + path)
+        #print("Open the file: " + path)
         self.f = open(path, 'r+')
         self.json_dict = list()
 
@@ -48,19 +51,19 @@ class JsonGenerator:
 
     def cleanup(self):
         # close files
-        print("Close all files")
+        #print("Close all files")
         self.f.close()
 
 
 class SOFTIRQGen(JsonGenerator):
     def generate_json(self):
-        print("Generate softirq.json")
+        #print("Generate softirq.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original softirq.json")
+        #print("Read original softirq.json")
         for line in self.f:
             parts = [x for x in line.split(' ') if x.strip()]
 
@@ -85,13 +88,14 @@ class SOFTIRQGen(JsonGenerator):
 
 class IRQGen(JsonGenerator):
     def generate_json(self):
-        print("Generate irq.json")
+        #print("Generate irq.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original irq.json")
+        #print("Read original irq.json")
+
 
         first = True
         for line in self.f:
@@ -124,24 +128,34 @@ class IRQGen(JsonGenerator):
 class PACKET_CNTGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate packet_cnt.json")
+        #print("Generate packet_cnt.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original packet_cnt.json")
+        #print("Read original packet_cnt.json")
         for line in self.f:
+
+            dropped = False
+
             parts = [x for x in line.split(':') if x.strip()]
 
             # Read Type (TX/RX)
-            if 'rx' in parts[0]:
+            if 'dropped' in parts[0]:
+                net_type = 'dropped'
+                dropped = True
+            elif 'rx' in parts[0]:
                 net_type = 'RX'
-            if 'tx' in parts[0]:
+            elif 'tx' in parts[0]:
                 net_type = 'TX'
 
             # Read Queue Number
-            q_num = int(re.sub("[^0-9]", "", parts[0]))
+            #print(parts[0])
+            if not dropped:
+                q_num = int(re.sub("[^0-9]", "", parts[0]))
+            else:
+                q_num = -1
 
             # Check if object exists
             elem = next((item for item in self.json_dict if item["Queue"] == q_num and item["Type"] == net_type), None)
@@ -160,13 +174,13 @@ class PACKET_CNTGen(JsonGenerator):
 class IPERFGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate iperf.json")
+        #print("Generate iperf.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original iperf.json")
+        #print("Read original iperf.json")
         tmp_dict = json.load(self.f)
         conns = list()
 
@@ -200,20 +214,20 @@ class IPERFGen(JsonGenerator):
 class SOFTNETGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate softnet.json")
+        #print("Generate softnet.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original softnet.json")
+        #print("Read original softnet.json")
 
 
         for line in self.f:
             parts = [x for x in line.split(' ') if x.strip()]
 
             # Read Queue Number
-            curr_cpu = int(parts[-1],16)
+            curr_cpu = int(parts[-3],16)
 
             # Check if object exists
             elem = next((item for item in self.json_dict if item["CPU"] == curr_cpu), None)
@@ -223,26 +237,33 @@ class SOFTNETGen(JsonGenerator):
                 elem["Processed"] = int(parts[0],16) - elem["Processed"]
                 elem["Dropped"] = int(parts[1],16) - elem["Dropped"]
                 elem["Squeezed"] = int(parts[2],16) - elem["Squeezed"]
-                elem["RPS Interrupts"] = int(parts[3],16) - elem["RPS Interrupts"]
+                elem["RPS Interrupts"] = int(parts[9],16) - elem["RPS Interrupts"]
+                elem["IPI Enqueued"] = int(parts[4],16)- elem["IPI Enqueued"]
+                elem["InputQ Dequeued"] = int(parts[5],16)- elem["InputQ Dequeued"]
+                elem["Input Pkts"] = int(parts[6],16) - elem["Input Pkts"]
+
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
                 elem["Processed"] = int(parts[0],16)
                 elem["Dropped"] = int(parts[1],16)
                 elem["Squeezed"] = int(parts[2],16)
-                elem["RPS Interrupts"] = int(parts[3],16)
+                elem["RPS Interrupts"] = int(parts[9],16)
+                elem["IPI Enqueued"] = int(parts[4],16)
+                elem["InputQ Dequeued"] = int(parts[5],16)
+                elem["Input Pkts"] = int(parts[6],16)
                 self.json_dict.append(elem)
 
 class PKT_STEERGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate pkt_steer.json")
+        #print("Generate pkt_steer.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original pkt_steer.json")
+        #print("Read original pkt_steer.json")
 
 
         for line in self.f:
@@ -264,6 +285,7 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16) - elem["TargetIsSelf"]
                 elem["ChoseInvalid"] = int(parts[7],16) - elem["ChoseInvalid"]
                 elem["Fallback"] = int(parts[8],16) - elem["Fallback"]
+                elem["Overloaded"] = int(parts[9],16) - elem["Overloaded"]
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
@@ -275,7 +297,190 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16)
                 elem["ChoseInvalid"] = int(parts[7],16)
                 elem["Fallback"] = int(parts[8],16)
+                elem["Overloaded"] = int(parts[9],16)
                 self.json_dict.append(elem)
+
+class PROC_STATGen(JsonGenerator):
+
+    def generate_json(self):
+        #print("Generate proc_stat.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        #print("Read original proc_stat.json")
+
+
+        for line in self.f:
+            parts = [x for x in line.split(' ') if x.strip()]
+
+            # Read Queue Number
+            if len(parts[0]) == 3:
+                continue
+
+            if parts[0][:3] != "cpu":
+                continue
+
+            curr_cpu = int(parts[0][3:])
+
+            # Check if object exists
+            elem = next((item for item in self.json_dict if item["CPU"] == curr_cpu), None)
+
+            # Write to object
+            if elem is not None:
+                elem["User"] = int(parts[1]) - elem["User"]
+                elem["Nice"] = int(parts[2]) - elem["Nice"]
+                elem["System"] = int(parts[3]) - elem["System"]
+                elem["Idle"] = int(parts[4]) - elem["Idle"]
+                elem["IOWait"] = int(parts[5]) - elem["IOWait"]
+                elem["Irq"] = int(parts[6]) - elem["Irq"]
+                elem["Softirq"] = int(parts[7]) - elem["Softirq"]
+                elem["Steal"] = int(parts[8]) - elem["Steal"]
+                elem["Guest"] = int(parts[9]) - elem["Guest"]
+                elem["Guest_Nice"] = int(parts[10]) - elem["Guest_Nice"]
+            else:
+                elem = dict()
+                elem["CPU"] = curr_cpu
+                elem["User"] = int(parts[1])
+                elem["Nice"] = int(parts[2])
+                elem["System"] = int(parts[3])
+                elem["Idle"] = int(parts[4])
+                elem["IOWait"] = int(parts[5])
+                elem["Irq"] = int(parts[6])
+                elem["Softirq"] = int(parts[7])
+                elem["Steal"] = int(parts[8])
+                elem["Guest"] = int(parts[9])
+                elem["Guest_Nice"] = int(parts[10])
+                self.json_dict.append(elem)
+class PERFGen(JsonGenerator):
+
+    def generate_json(self):
+        # pass
+        #print("Generate perf.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+
+
+
+        contributions = {}
+        not_found = []
+        symbol_map = {}
+        total_contrib = 0.
+        unaccounted_contrib = 0.
+        this_type = None
+        first = True
+        # Read the symbols map file
+        with open("symbol_mapping.tsv", "r") as f:
+            for line in f.readlines():
+                comps = line.split()
+                if len(comps) == 2:
+                    symbol, typ = line.split()
+                    symbol_map[symbol] = typ
+                    if typ not in contributions:
+                        contributions[typ] = 0.
+        
+        # Process the perf output to calculate breakdown
+        for line in self.f:
+
+            comps = line.split()
+            if len(comps) == 2 and comps[0] == "TYPE":
+                if first is not True:
+                    # Save previous perf info
+                    elem = dict()
+                    elem['Type'] = this_type
+                    elem['Total'] = total_contrib
+                    elem['Unaccounted'] = unaccounted_contrib
+                    for typ in contributions.keys():
+                        elem[typ] = contributions[typ]
+                    #print(elem)
+                    self.json_dict.append(elem)
+
+                # reinitialize
+                first = False
+                this_type = comps[1]
+                for x in contributions.keys():
+                    contributions[x] = 0.
+                not_found = []
+                total_contrib = 0.
+                unaccounted_contrib = 0.
+
+                # skip to next line
+                continue
+
+            if total_contrib < 95:
+                if len(comps) == 5 and comps[3] == "[k]":
+                    func = comps[4].split(".")[0]
+                    contrib = float(comps[0][:-1])
+                    total_contrib += contrib
+                    if func in symbol_map:
+                        typ = symbol_map[func]
+                        contributions[typ] += contrib
+                    elif comps[2] == "[pkt_steer_module]":
+                        contributions['netdev'] += contrib
+                    else:
+                        if contrib > 0.01:
+                            not_found.append(func)
+                        unaccounted_contrib += contrib
+            else:
+                continue
+        # print(total_contrib)
+        # print(unaccounted_contrib)
+        # print(contributions)
+        # for x in not_found:
+        #     print(x)
+
+        elem = dict()
+        elem['Type'] = this_type
+        elem['Total'] = total_contrib
+        elem['Unaccounted'] = unaccounted_contrib
+        for typ in contributions.keys():
+            elem[typ] = contributions[typ]
+
+        self.json_dict.append(elem)
+
+
+        #return total_contrib, unaccounted_contrib, contributions, not_found
+
+class PERF_STATGen(JsonGenerator):
+
+    def generate_json(self):
+        # pass
+        #print("Generate perf_stat.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+
+        first = True
+
+        keys = ["cycles", "instructions", "LLC-loads", "LLC-load-misses"]
+        elem = dict()
+
+        for line in self.f:
+            comps = line.split()
+            
+            if len(comps) == 2 and comps[0] == "TYPE":
+                if first is not True:
+                    self.json_dict.append(elem)
+                    elem = dict()
+                elem["Type"] = comps[1]
+
+                first = False
+
+                # skip to next line
+                continue
+
+            if len(comps) >= 2 and comps[1] in keys:
+                elem[comps[1]] = int(comps[0].replace(',',''))
+
+        self.json_dict.append(elem)
+
+        #print(self.json_dict)
 
 
 argc = len(sys.argv)
@@ -288,7 +493,7 @@ if argc < 3:
 # get folder name from command line
 
 # [TODO] Check if the directory exists
-folder = "./data/" + sys.argv[1] + "/"
+folder = "/home/hema/Custom_Packet_Steering/data/" + sys.argv[1] + "/"
 
 
 for target in sys.argv[2:]:
