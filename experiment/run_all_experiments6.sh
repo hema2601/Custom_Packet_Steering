@@ -17,7 +17,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 1 0 0 0 0 $i $intf 0 5 0 1 100
+		$current_path/run_mini_project.sh $dir 1 0 0 0 0 $conn $intf 0 5 0 1 100
 	done
 	conn=$((conn*2))
 done
@@ -30,7 +30,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 1 1 0 0 0 $i $intf 0 2 0 1 100
+		$current_path/run_mini_project.sh $dir 1 1 0 0 0 $conn $intf 0 2 0 1 100
 	done
 	conn=$((conn*2))
 done
@@ -43,7 +43,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 1 0 0 1 4 $i $intf 0 2 0 1 100
+		$current_path/run_mini_project.sh $dir 1 0 0 1 4 $conn $intf 0 2 0 1 100
 	done
 	conn=$((conn*2))
 done

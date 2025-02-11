@@ -10,7 +10,7 @@ if len(sys.argv) > 3:
 else:
     base_dir = "."
 #bases = ["RSS", "RPS", "RFS", "Custom"]
-bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "Custom1", "Custom2", "Custom3", "RSS+Custom", "RSS+Custom1", "RSS+Custom2", "RSS+Custom3"]
+bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "Custom1", "Custom2", "Custom3", "RSS+Custom", "RSS+Custom1", "RSS+Custom2", "RSS+Custom3", "Custom1-0", "Custom1-1", "Custom1-2", "Custom1-3", "Custom2-0", "Custom2-1", "Custom2-2", "Custom2-3"]
 directory = []
 
 exp = 1
@@ -27,7 +27,7 @@ for i in range(reps):
 
 
 
-files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json", "perf.json", "perf_stat.json"]
+files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json", "perf.json", "perf_stat.json", "busy_histo.json"]
 
 os.mkdir("/home/hema/Custom_Packet_Steering/summaries")
 
