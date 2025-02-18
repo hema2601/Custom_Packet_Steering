@@ -183,7 +183,11 @@ class IPERFGen(JsonGenerator):
     def read_source(self):
         #print("Read original iperf.json")
         tmp_dict = json.load(self.f)
+        
+        #histos = list()
         conns = list()
+        #histo_stats = dict()
+    
 
         for conn in tmp_dict["start"]["connected"]:
             elem = dict()
@@ -194,6 +198,7 @@ class IPERFGen(JsonGenerator):
         for interval in tmp_dict["intervals"]:
 
             for stream in interval["streams"]:
+                print(self.json_dict)
                 elem = dict()
                 elem["bps"] = stream["bits_per_second"]
                 elem["t"] = stream["end"]
@@ -210,7 +215,65 @@ class IPERFGen(JsonGenerator):
 
                         break
 
-                self.json_dict.append(elem)
+                histo = next((end_stream for end_stream in tmp_dict["end"]["streams"] if end_stream['receiver']['socket'] == stream['socket']), None)
+                
+                if(histo == None):
+                    self.json_dict.append(elem)
+                    continue
+
+                histo = histo["receiver"]["rx_ts_histogram"]
+
+                elem["min"] = histo["min"]
+                elem["max"] = histo["max"]
+                elem["avg"] = histo["avg"]
+                elem["total"] = histo["total"]
+
+                for single_bin in histo["bins"]:
+                    new_elem = dict(elem)
+                    new_elem["start"] = single_bin["start"]
+                    new_elem["end"] = single_bin["end"]
+                    new_elem["count"] = single_bin["count"]
+                    self.json_dict.append(new_elem)
+
+      #  for stream in tmp_dict["end"]["streams"]:
+
+      #      histo_stream = stream["receiver"]["rx_ts_histogram"]
+
+      #      if 'max' in histo_stats:
+      #          
+      #          histo_stats['max'] = max(histo_stream['max'], histo_stats['max'])
+      #      else:
+      #          histo_stats['max'] = histo_stream['max']
+      #      if 'min' in histo_stats:
+      #          histo_stats['min'] = min(histo_stream['min'], histo_stats['min'])
+      #      else:
+      #          histo_stats['min'] = histo_stream['min']
+      #      if 'avg' in histo_stats:
+      #          histo_stats['avg'] = (histo_stats['total'] * histo_stats['avg'] + histo_stream['avg']) / (histo_stats['total'] + histo_stream['total'])
+      #      else:
+      #          histo_stats['avg'] = histo_stream['avg']
+      #      if 'total' in histo_stats:
+      #          histo_stats['total'] += histo_stream['total']
+
+      #      else:
+      #          histo_stats['total'] = histo_stream['total']
+
+
+      #      for single_bin in stream["receiver"]["rx_ts_histogram"]["bins"]: 
+      #          
+      #          elem = next((item for item in histos if item["start"] == single_bin["start"]), None)
+      #          if elem is None:
+      #              histos.append(single_bin)
+      #          else:
+      #              elem["count"] += single_bin["count"]
+   
+      #  for item in histos:
+      #      self.json_dict.append(item)
+
+
+      #  self.json_dict.append(histo_stats)
+
+
 
 class SOFTNETGen(JsonGenerator):
 

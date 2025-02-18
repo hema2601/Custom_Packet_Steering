@@ -327,8 +327,9 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					tcpu = this_cpu;
 					break;
 				case RPS:
-					if (map) 
-						tcpu = map->cpus[reciprocal_scale(hash, map->len)];
+					tcpu = (hash % max_cpus) + base_cpu;
+					//if (map) 
+					//	tcpu = map->cpus[reciprocal_scale(hash, map->len)];
 					break;
 				case APP:
 					tcpu = perform_rfs(dev, skb);
@@ -369,13 +370,16 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 			}else{
 				stats->noBusyAvailable++;
 			}
-			busy_histo[curr_busy]++;
+			//busy_histo[curr_busy]++;
 			spin_unlock(&busy_backlog_lock);
 
 			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, tcpu);
 		}
 
 confirm_target:
+
+		busy_histo[curr_busy]++;
+
 
 		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
 			*rflowp = rflow;

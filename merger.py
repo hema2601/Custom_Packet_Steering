@@ -49,7 +49,7 @@ for f in files:
                 print(exp + " " + f)
                 d = json.load(json_file)
                 for elem in d:
-                    #print(elem)
+                    print(elem)
                     elem["Exp"]=exp.split("_")[0]
                     elem["Conns"]=exp.split("_")[1]
                     elem["Rep"]=exp.split("_")[2]
