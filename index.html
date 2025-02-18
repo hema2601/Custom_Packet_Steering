@@ -5,6 +5,7 @@
 		<script src="https://cdn.jsdelivr.net/npm/vega@5.29.0"></script>
 		<script src="https://cdn.jsdelivr.net/npm/vega-lite@5.19.0"></script>
 		<script src="https://cdn.jsdelivr.net/npm/vega-embed@6.25.0"></script>
+		<!-- <script src="https://cdn.jsdelivr.net/npm/vega-tooltip@0.35.2"></script> -->
 
 		<script src="web/components/cpu_util_graph.js"></script>
 		<script src="web/components/drop_graph.js"></script>
@@ -16,6 +17,10 @@
 		<script src="web/components/cache_miss_graph.js"></script>
 		<script src="web/components/ipc_graph.js"></script>
 		<script src="web/components/busy_histo_graph.js"></script>
+		<script src="web/components/rx_lat_graph.js"></script>
+
+		<!-- Import Vega 5 & Vega-Lite 4 (does not have to be from CDN) -->
+
 
 		<style>
 		.collapsible {
@@ -91,6 +96,10 @@
 		<div class="content">
 			<div id="Busy_Histo"></div>
 		</div>
+		<button type="button" class="collapsible">RX Latency Graph</button>
+		<div class="content">
+			<div id="RX_Lat"></div>
+		</div>
 
 		<script type="text/javascript">
 
@@ -128,7 +137,7 @@ function fetchJSONData(path, divs, graphs) {
 			{
 				divs.forEach((div, idx) => {
 
-					vegaEmbed(div, graphs[idx]).then(res =>
+					vegaEmbed(div, graphs[idx], {tooltip: {theme: 'light'}}).then(res =>
 						res.view
 						.insert('myData', data
 						).resize()
@@ -147,7 +156,7 @@ function fetchJSONData(path, divs, graphs) {
 function loadAllGraphs(path){
 	
 
-	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'], [Throughput])
+	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput', '#RX_Lat'], [Throughput, RX_Lat_histo])
 	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'], [Drops])
 	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI', '#InputQData'], [PpIPI, InputQData])
 	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'], [PktSteer])

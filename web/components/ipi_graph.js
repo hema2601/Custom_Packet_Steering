@@ -15,7 +15,7 @@ var PpIPI = {
 
 		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
 			   ],
-			   "mark": "bar",
+			   "mark": {"type":"bar","tooltip":true},
 			   "encoding": {
 			     "x": {"field": "Conns", "type": "ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":360}},
 				   "xOffset": {"field": "Scheme", "sort":"['RPS', 'RFS', 'IAPS']"},

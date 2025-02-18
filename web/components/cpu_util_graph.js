@@ -21,7 +21,7 @@ var CPUUtil = {
 
 		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
 	],
-	"mark": "bar",
+	"mark": {"type":"bar","tooltip":true},
 	"encoding": {
 		"column": {"field": "Scheme",  "type": "nominal"},
 		"row":{"field":"Rep"},

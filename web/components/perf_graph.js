@@ -12,7 +12,7 @@ var perf_graph = {
 
 		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
 	],
-	"mark": "bar",
+	"mark": {"type":"bar","tooltip":true},
 	"encoding": {
 		"row": {"field":"Type", "type":"nominal"},
 		"column": {"field": "Scheme",  "type": "nominal"},

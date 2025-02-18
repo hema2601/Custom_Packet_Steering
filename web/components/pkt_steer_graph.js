@@ -33,7 +33,7 @@ var PktSteer = {
 				"as": "Scheme"
 			}
 		],
-		"mark": "bar",
+		"mark": {"type":"bar","tooltip":true},
 		"encoding": {
 			"x": {"field": "Conns", "type": "ordinal", "sort": []},
 			"y": {

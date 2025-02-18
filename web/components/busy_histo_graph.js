@@ -6,7 +6,7 @@ var Busy_Histo = {
 	"transform":[
 		{"filter":"datum.Busy_CPUs < 6"}
 	],
-	"mark": "bar",
+	"mark": {"type":"bar", "tooltip": true},
 	"encoding": {
 		"x": {"field": "Busy_CPUs", "type": "ordinal"},
 		"y": {"field": "Count", "type": "quantitative", "aggregate":"mean"},

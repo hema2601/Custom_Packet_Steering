@@ -33,7 +33,8 @@ var Throughput = {
 	],
 	"mark": {
 		"type": "line",
-		"point": true
+		"point": true,
+		"tooltip": true
 	},
 	"encoding": {
 		"x": {"field": "Conns", "type":"ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":360}},

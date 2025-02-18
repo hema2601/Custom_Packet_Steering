@@ -11,7 +11,7 @@ var ipc = {
 
 		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
 	],
-	"mark": "bar",
+	"mark": {"type":"bar","tooltip":true},
 	"encoding": {
 		"column": {"field":"Type"},
 		"x": {"field": "Conns", "type": "ordinal", "sort":[], "axis": {"labelAngle": 45}},
