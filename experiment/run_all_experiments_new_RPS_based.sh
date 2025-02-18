@@ -6,7 +6,7 @@ conns=$3
 current_path=/home/hema/Custom_Packet_Steering
 
 
-name="BigMsg_GRO_Sep_Overload_Tests"
+name="BigMsg_GRO_Sep_RPS_based"
 
 exp_name=RSS
 conn=1
@@ -25,62 +25,31 @@ exp_name=RPS
 conn=1
 for((i=1;i<=$conns;i++));
 do
-    for((j=1;j<=$rep;j++));
-    do
-        dir="$exp_name"_"$conn"_"$j"
-        echo $dir
-        $current_path/run_mini_project.sh $dir 0 1 0 0 0 $conn $intf 0 4 1 1
-    done
-    conn=$((conn*2))
+	for((j=1;j<=$rep;j++));
+	do
+		dir="$exp_name"_"$conn"_"$j"
+		echo $dir
+		$current_path/run_mini_project.sh $dir 0 1 0 0 0 $conn $intf 0 4 1 1
+	done
+	conn=$((conn*2))
 done
 
 exp_name=RFS
 conn=1
 for((i=1;i<=$conns;i++));
 do
-    for((j=1;j<=$rep;j++));
-    do
-        dir="$exp_name"_"$conn"_"$j"
-        echo $dir
-        $current_path/run_mini_project.sh $dir 0 0 1 0 0 $conn $intf 0 4 1 1
-    done
-    conn=$((conn*2))
-done
-
-# No overload
-
-echo 0 > /sys/module/pkt_steer_module/parameters/activate_overload
-
-exp_name=Custom1-0
-conn=1
-for((i=1;i<=$conns;i++));
-do
 	for((j=1;j<=$rep;j++));
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 1 $conn $intf 0 4 1 1
+		$current_path/run_mini_project.sh $dir 0 0 1 0 0 $conn $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done
-
-exp_name=Custom2-0
-conn=1
-for((i=1;i<=$conns;i++));
-do
-	for((j=1;j<=$rep;j++));
-	do
-		dir="$exp_name"_"$conn"_"$j"
-		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 4 $conn $intf 0 4 1 1
-	done
-	conn=$((conn*2))
-done
-
-# Overload 5
 
 echo 1 > /sys/module/pkt_steer_module/parameters/activate_overload
 echo 5 > /sys/module/pkt_steer_module/parameters/iq_thresh
+
 
 exp_name=Custom1-1
 conn=1
@@ -103,15 +72,14 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 4 $conn $intf 0 4 1 1
+		$current_path/run_mini_project.sh $dir 0 0 0 1 3 $conn $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done
 
-# Overload 10
-
 echo 1 > /sys/module/pkt_steer_module/parameters/activate_overload
 echo 10 > /sys/module/pkt_steer_module/parameters/iq_thresh
+
 
 exp_name=Custom1-2
 conn=1
@@ -134,38 +102,7 @@ do
 	do
 		dir="$exp_name"_"$conn"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 4 $conn $intf 0 4 1 1
-	done
-	conn=$((conn*2))
-done
-
-# Overload 15
-
-echo 1 > /sys/module/pkt_steer_module/parameters/activate_overload
-echo 15 > /sys/module/pkt_steer_module/parameters/iq_thresh
-
-exp_name=Custom1-3
-conn=1
-for((i=1;i<=$conns;i++));
-do
-	for((j=1;j<=$rep;j++));
-	do
-		dir="$exp_name"_"$conn"_"$j"
-		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 1 $conn $intf 0 4 1 1
-	done
-	conn=$((conn*2))
-done
-
-exp_name=Custom2-3
-conn=1
-for((i=1;i<=$conns;i++));
-do
-	for((j=1;j<=$rep;j++));
-	do
-		dir="$exp_name"_"$conn"_"$j"
-		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 4 $conn $intf 0 4 1 1
+		$current_path/run_mini_project.sh $dir 0 0 0 1 3 $conn $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done

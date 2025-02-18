@@ -22,6 +22,8 @@ core_num=${15:-8}
 time=${16:-10} 
 
 IPERF_BIN=iperf3
+IPERF_CUSTOM_ARGS=""
+
 
 PERF_BIN=$current_path/linux-6.10.8/tools/perf/perf
 
@@ -30,6 +32,7 @@ type="Unknown"
 if command -v iperf3_napi &> /dev/null
 then
 	IPERF_BIN=iperf3_napi
+	IPERF_CUSTOM_ARGS="--server-rx-timestamp 20,5000"
     echo "Using custom iperf3"
 fi
 
@@ -208,7 +211,7 @@ PERFSTAT_PID=$!
 
 # Run iperf3
 #taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} > /dev/null"&
-taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M ${mss} -t ${time} > /dev/null"&
+taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J $IPERF_CUSTOM_ARGS > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M ${mss} -t ${time} > /dev/null"&
 IPERF_PID=$!
 
 # Perform Latency Test 
