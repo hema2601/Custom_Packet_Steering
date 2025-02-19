@@ -13,8 +13,10 @@ class Filetype(Enum):
     PKT_STEER   = 6
     PROC_STAT   = 7
     PERF        = 8
+    PERF_STAT   = 9
+    BUSY_HISTO  = 10
 
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF'])
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO'])
 
 
 class JsonGenerator:
@@ -24,7 +26,7 @@ class JsonGenerator:
     _tr = {}
 
     def __init__(self, path):
-        print("Open the file: " + path)
+        #print("Open the file: " + path)
         self.f = open(path, 'r+')
         self.json_dict = list()
 
@@ -50,19 +52,19 @@ class JsonGenerator:
 
     def cleanup(self):
         # close files
-        print("Close all files")
+        #print("Close all files")
         self.f.close()
 
 
 class SOFTIRQGen(JsonGenerator):
     def generate_json(self):
-        print("Generate softirq.json")
+        #print("Generate softirq.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original softirq.json")
+        #print("Read original softirq.json")
         for line in self.f:
             parts = [x for x in line.split(' ') if x.strip()]
 
@@ -87,13 +89,14 @@ class SOFTIRQGen(JsonGenerator):
 
 class IRQGen(JsonGenerator):
     def generate_json(self):
-        print("Generate irq.json")
+        #print("Generate irq.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original irq.json")
+        #print("Read original irq.json")
+
 
         first = True
         for line in self.f:
@@ -126,13 +129,13 @@ class IRQGen(JsonGenerator):
 class PACKET_CNTGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate packet_cnt.json")
+        #print("Generate packet_cnt.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original packet_cnt.json")
+        #print("Read original packet_cnt.json")
         for line in self.f:
 
             dropped = False
@@ -149,7 +152,7 @@ class PACKET_CNTGen(JsonGenerator):
                 net_type = 'TX'
 
             # Read Queue Number
-            print(parts[0])
+            #print(parts[0])
             if not dropped:
                 q_num = int(re.sub("[^0-9]", "", parts[0]))
             else:
@@ -172,15 +175,19 @@ class PACKET_CNTGen(JsonGenerator):
 class IPERFGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate iperf.json")
+        #print("Generate iperf.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original iperf.json")
+        #print("Read original iperf.json")
         tmp_dict = json.load(self.f)
+        
+        #histos = list()
         conns = list()
+        #histo_stats = dict()
+    
 
         for conn in tmp_dict["start"]["connected"]:
             elem = dict()
@@ -191,6 +198,7 @@ class IPERFGen(JsonGenerator):
         for interval in tmp_dict["intervals"]:
 
             for stream in interval["streams"]:
+                #print(self.json_dict)
                 elem = dict()
                 elem["bps"] = stream["bits_per_second"]
                 elem["t"] = stream["end"]
@@ -207,18 +215,76 @@ class IPERFGen(JsonGenerator):
 
                         break
 
-                self.json_dict.append(elem)
+                histo = next((end_stream for end_stream in tmp_dict["end"]["streams"] if end_stream['receiver']['socket'] == stream['socket']), None)
+                
+                if(histo == None):
+                    self.json_dict.append(elem)
+                    continue
+
+                histo = histo["receiver"]["rx_ts_histogram"]
+
+                elem["min"] = histo["min"]
+                elem["max"] = histo["max"]
+                elem["avg"] = histo["avg"]
+                elem["total"] = histo["total"]
+
+                for single_bin in histo["bins"]:
+                    new_elem = dict(elem)
+                    new_elem["start"] = single_bin["start"]
+                    new_elem["end"] = single_bin["end"]
+                    new_elem["count"] = single_bin["count"]
+                    self.json_dict.append(new_elem)
+
+      #  for stream in tmp_dict["end"]["streams"]:
+
+      #      histo_stream = stream["receiver"]["rx_ts_histogram"]
+
+      #      if 'max' in histo_stats:
+      #          
+      #          histo_stats['max'] = max(histo_stream['max'], histo_stats['max'])
+      #      else:
+      #          histo_stats['max'] = histo_stream['max']
+      #      if 'min' in histo_stats:
+      #          histo_stats['min'] = min(histo_stream['min'], histo_stats['min'])
+      #      else:
+      #          histo_stats['min'] = histo_stream['min']
+      #      if 'avg' in histo_stats:
+      #          histo_stats['avg'] = (histo_stats['total'] * histo_stats['avg'] + histo_stream['avg']) / (histo_stats['total'] + histo_stream['total'])
+      #      else:
+      #          histo_stats['avg'] = histo_stream['avg']
+      #      if 'total' in histo_stats:
+      #          histo_stats['total'] += histo_stream['total']
+
+      #      else:
+      #          histo_stats['total'] = histo_stream['total']
+
+
+      #      for single_bin in stream["receiver"]["rx_ts_histogram"]["bins"]: 
+      #          
+      #          elem = next((item for item in histos if item["start"] == single_bin["start"]), None)
+      #          if elem is None:
+      #              histos.append(single_bin)
+      #          else:
+      #              elem["count"] += single_bin["count"]
+   
+      #  for item in histos:
+      #      self.json_dict.append(item)
+
+
+      #  self.json_dict.append(histo_stats)
+
+
 
 class SOFTNETGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate softnet.json")
+        #print("Generate softnet.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original softnet.json")
+        #print("Read original softnet.json")
 
 
         for line in self.f:
@@ -255,13 +321,13 @@ class SOFTNETGen(JsonGenerator):
 class PKT_STEERGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate pkt_steer.json")
+        #print("Generate pkt_steer.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original pkt_steer.json")
+        #print("Read original pkt_steer.json")
 
 
         for line in self.f:
@@ -283,6 +349,8 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16) - elem["TargetIsSelf"]
                 elem["ChoseInvalid"] = int(parts[7],16) - elem["ChoseInvalid"]
                 elem["Fallback"] = int(parts[8],16) - elem["Fallback"]
+                #elem["IsOverloaded"] = int(parts[9],16) - elem["IsOverloaded"]
+                #elem["FromOverloaded"] = int(parts[10],16) - elem["FromOverloaded"]
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
@@ -294,18 +362,20 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16)
                 elem["ChoseInvalid"] = int(parts[7],16)
                 elem["Fallback"] = int(parts[8],16)
+                #elem["IsOverloaded"] = int(parts[9],16)
+                #elem["FromOverloaded"] = int(parts[10],16)
                 self.json_dict.append(elem)
 
 class PROC_STATGen(JsonGenerator):
 
     def generate_json(self):
-        print("Generate proc_stat.json")
+        #print("Generate proc_stat.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
 
     def read_source(self):
-        print("Read original proc_stat.json")
+        #print("Read original proc_stat.json")
 
 
         for line in self.f:
@@ -353,7 +423,7 @@ class PERFGen(JsonGenerator):
 
     def generate_json(self):
         # pass
-        print("Generate perf.json")
+        #print("Generate perf.json")
         self.f.seek(0)
         self.f.truncate()
         json.dump(self.json_dict, self.f, indent=0)
@@ -392,7 +462,7 @@ class PERFGen(JsonGenerator):
                     elem['Unaccounted'] = unaccounted_contrib
                     for typ in contributions.keys():
                         elem[typ] = contributions[typ]
-                    print(elem)
+                    #print(elem)
                     self.json_dict.append(elem)
 
                 # reinitialize
@@ -441,6 +511,113 @@ class PERFGen(JsonGenerator):
 
         #return total_contrib, unaccounted_contrib, contributions, not_found
 
+class PERF_STATGen(JsonGenerator):
+
+    def generate_json(self):
+        # pass
+        #print("Generate perf_stat.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+
+        first = True
+
+        keys = ["cycles", "instructions", "LLC-loads", "LLC-load-misses"]
+        elem = dict()
+
+        for line in self.f:
+            comps = line.split()
+            
+            if len(comps) == 2 and comps[0] == "TYPE":
+                if first is not True:
+                    self.json_dict.append(elem)
+                    elem = dict()
+                elem["Type"] = comps[1]
+
+                first = False
+
+                # skip to next line
+                continue
+
+            if len(comps) >= 2 and comps[1] in keys:
+                elem[comps[1]] = int(comps[0].replace(',',''))
+
+        self.json_dict.append(elem)
+
+        #print(self.json_dict)
+class BUSY_HISTOGen(JsonGenerator):
+
+    def generate_json(self):
+        #print("Generate proc_stat.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        #print("Read original proc_stat.json")
+        line_count = 0;
+
+        for line in self.f:
+            parts = [x for x in line.split(' ') if x.strip()]
+            idx = 0
+            # print("New line " + str(idx))
+            for part in parts:
+                #print(idx)
+                c = int(part,16)
+                if line_count == 0:
+                    elem = dict()
+                    elem["Busy_CPUs"] = idx
+                    elem["Count"] = c
+                    self.json_dict.append(elem)
+                else:
+                    elem = next((item for item in self.json_dict if item["Busy_CPUs"] == idx), None)
+                    elem["Count"] = c - elem["Count"]
+                idx += 1
+
+            line_count += 1
+       # for line in self.f:
+       #     parts = [x for x in line.split(' ') if x.strip()]
+
+       #     # Read Queue Number
+       #     if len(parts[0]) == 3:
+       #         continue
+
+       #     if parts[0][:3] != "cpu":
+       #         continue
+
+       #     curr_cpu = int(parts[0][3:])
+
+       #     # Check if object exists
+       #     elem = next((item for item in self.json_dict if item["CPU"] == curr_cpu), None)
+
+       #     # Write to object
+       #     if elem is not None:
+       #         elem["User"] = int(parts[1]) - elem["User"]
+       #         elem["Nice"] = int(parts[2]) - elem["Nice"]
+       #         elem["System"] = int(parts[3]) - elem["System"]
+       #         elem["Idle"] = int(parts[4]) - elem["Idle"]
+       #         elem["IOWait"] = int(parts[5]) - elem["IOWait"]
+       #         elem["Irq"] = int(parts[6]) - elem["Irq"]
+       #         elem["Softirq"] = int(parts[7]) - elem["Softirq"]
+       #         elem["Steal"] = int(parts[8]) - elem["Steal"]
+       #         elem["Guest"] = int(parts[9]) - elem["Guest"]
+       #         elem["Guest_Nice"] = int(parts[10]) - elem["Guest_Nice"]
+       #     else:
+       #         elem = dict()
+       #         elem["CPU"] = curr_cpu
+       #         elem["User"] = int(parts[1])
+       #         elem["Nice"] = int(parts[2])
+       #         elem["System"] = int(parts[3])
+       #         elem["Idle"] = int(parts[4])
+       #         elem["IOWait"] = int(parts[5])
+       #         elem["Irq"] = int(parts[6])
+       #         elem["Softirq"] = int(parts[7])
+       #         elem["Steal"] = int(parts[8])
+       #         elem["Guest"] = int(parts[9])
+       #         elem["Guest_Nice"] = int(parts[10])
+       #         self.json_dict.append(elem)
 
 
 argc = len(sys.argv)
@@ -453,7 +630,7 @@ if argc < 3:
 # get folder name from command line
 
 # [TODO] Check if the directory exists
-folder = "./data/" + sys.argv[1] + "/"
+folder = "/home/hema/Custom_Packet_Steering/data/" + sys.argv[1] + "/"
 
 
 for target in sys.argv[2:]:

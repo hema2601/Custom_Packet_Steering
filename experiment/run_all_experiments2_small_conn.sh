@@ -2,82 +2,81 @@
 intf=$1
 rep=$2
 conns=$3
-starting_conn=${4:-1}
 
 current_path=/home/hema/Custom_Packet_Steering
 
-name="BigMsg_GRO_Sep_Exp"
+exponential=0
+
+name="BigMsg_GRO_Sep_NonExp"
 
 exp_name=RSS
-conn=$starting_conn
+conn=1
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
 	do
-		dir="$exp_name"_"$conn"_"$j"
+		dir="$exp_name"_"$i"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 1 0 0 0 0 $conn $intf 0 4 1 1
+		$current_path/run_mini_project.sh $dir 1 0 0 0 0 $i $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done
 
 exp_name=RPS
-conn=$starting_conn
+conn=1
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
 	do
-		dir="$exp_name"_"$conn"_"$j"
+		dir="$exp_name"_"$i"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 0 1 0 0 0 $conn $intf 0 4 1 1
+		$current_path/run_mini_project.sh $dir 0 1 0 0 0 $i $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done
 
 exp_name=RFS
-conn=$starting_conn
+conn=1
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
 	do
-		dir="$exp_name"_"$conn"_"$j"
+		dir="$exp_name"_"$i"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 1 0 0 $conn $intf 0 4 1 1
+		$current_path/run_mini_project.sh $dir 0 0 1 0 0 $i $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done
 
 exp_name=Custom1
-conn=$starting_conn
+conn=1
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
 	do
-		dir="$exp_name"_"$conn"_"$j"
+		dir="$exp_name"_"$i"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 1 $conn $intf 0 4 1 1
+		$current_path/run_mini_project.sh $dir 0 0 0 1 1 $i $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done
 
 exp_name=Custom2
-conn=$starting_conn
+conn=1
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
 	do
-		dir="$exp_name"_"$conn"_"$j"
+		dir="$exp_name"_"$i"_"$j"
 		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 4 $conn $intf 0 4 1 1
+		$current_path/run_mini_project.sh $dir 0 0 0 1 4 $i $intf 0 4 1 1
 	done
 	conn=$((conn*2))
 done
 
 rm -r $current_path/summaries
 
-
-#[DANGER] Change this back
-python3 $current_path/merger.py $2 $((conns + 4)) 1
+python3 $current_path/merger.py $2 $3 $exponential
 
 mkdir $current_path/data/$name
 
