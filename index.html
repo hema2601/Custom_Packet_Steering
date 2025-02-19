@@ -5,7 +5,6 @@
 		<script src="https://cdn.jsdelivr.net/npm/vega@5.29.0"></script>
 		<script src="https://cdn.jsdelivr.net/npm/vega-lite@5.19.0"></script>
 		<script src="https://cdn.jsdelivr.net/npm/vega-embed@6.25.0"></script>
-		<!-- <script src="https://cdn.jsdelivr.net/npm/vega-tooltip@0.35.2"></script> -->
 
 		<script src="web/components/cpu_util_graph.js"></script>
 		<script src="web/components/drop_graph.js"></script>
@@ -14,37 +13,6 @@
 		<script src="web/components/tp_graph.js"></script>
 		<script src="web/components/inputq_graph.js"></script>
 		<script src="web/components/perf_graph.js"></script>
-		<script src="web/components/cache_miss_graph.js"></script>
-		<script src="web/components/ipc_graph.js"></script>
-		<script src="web/components/busy_histo_graph.js"></script>
-		<script src="web/components/rx_lat_graph.js"></script>
-
-		<!-- Import Vega 5 & Vega-Lite 4 (does not have to be from CDN) -->
-
-
-		<style>
-		.collapsible {
-			background-color: #777;
-			color: white;
-			cursor: pointer;
-			padding: 18px;
-			width: 100%;
-			border: none;
-			text-align: left;
-			outline: none;
-			font-size: 15px;
-		}
-
-		.active, .collapsible:hover {
-		    background-color: #555;
-		}
-
-		.content {
-		    padding: 0 18px;
-		    display: none;
-		    background-color: #f1f1f1;
-		}
-		</style>
 	</head>
 	<body>
 
@@ -55,51 +23,15 @@
 		<input type="text" id="myInput" placeholder="Enter text">
 
 		<!-- Button to get input value -->
-		<button onclick="getValue()">Get Value!</button>
-		<button type="button" class="collapsible">Throughput Graph</button>
-		<div class="content">
-			<div id="Throughput"></div>
-		</div>
-		<button type="button" class="collapsible">Packet Drops Graph</button>
-		<div class="content">
-			<div id="Drops"></div>
-		</div>
-		<button type="button" class="collapsible">Packets Per IPI Graph</button>
-		<div class="content">
-			<div id="PpIPI"></div>
-		</div>
-		<button type="button" class="collapsible">Cache Miss Graph</button>
-		<div class="content">
-			<div id="CacheMiss"></div>
-		</div>
-		<button type="button" class="collapsible">Packet Steering Stats Graph</button>
-		<div class="content">
-			<div id="PktSteer"></div>
-		</div>
-		<button type="button" class="collapsible">Cpu Utilization Graph</button>
-		<div class="content">
-			<div id="CPUUtil"></div>
-		</div>
-		<button type="button" class="collapsible">Input Queue Graph</button>
-		<div class="content">
-			<div id="InputQData"></div>
-		</div>
-		<button type="button" class="collapsible">Perf Graph</button>
-		<div class="content">
-			<div id="Perf"></div>
-		</div>
-		<button type="button" class="collapsible">IPC Graph</button>
-		<div class="content">
-			<div id="IPC"></div>
-		</div>
-		<button type="button" class="collapsible">Busy Histogram Graph</button>
-		<div class="content">
-			<div id="Busy_Histo"></div>
-		</div>
-		<button type="button" class="collapsible">RX Latency Graph</button>
-		<div class="content">
-			<div id="RX_Lat"></div>
-		</div>
+		<button onclick="getValue()">Get Value</button>
+
+		<div id="Throughput"></div>
+		<div id="Drops"></div>
+		<div id="PpIPI"></div>
+		<div id="PktSteer"></div>
+		<div id="CPUUtil"></div>
+		<div id="InputQData"></div>
+		<div id="Perf"></div>
 
 		<script type="text/javascript">
 
@@ -117,8 +49,8 @@ function getValue() {
 
 	document.getElementById("datadir").innerHTML = value;
 
-	//loadAllGraphs("./summaries/")
-	loadAllGraphs("data/".concat(value).concat("/summaries/"))
+	loadAllGraphs("./summaries/")
+	//loadAllGraphs("data/".concat(value).concat("/"))
 
 }
 
@@ -137,7 +69,7 @@ function fetchJSONData(path, divs, graphs) {
 			{
 				divs.forEach((div, idx) => {
 
-					vegaEmbed(div, graphs[idx], {tooltip: {theme: 'light'}}).then(res =>
+					vegaEmbed(div, graphs[idx]).then(res =>
 						res.view
 						.insert('myData', data
 						).resize()
@@ -156,30 +88,15 @@ function fetchJSONData(path, divs, graphs) {
 function loadAllGraphs(path){
 	
 
-	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput', '#RX_Lat'], [Throughput, RX_Lat_histo])
+	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'], [Throughput])
 	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'], [Drops])
 	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI', '#InputQData'], [PpIPI, InputQData])
 	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'], [PktSteer])
 	fetchJSONData(path.concat("summary_proc_stat.json"), ['#CPUUtil'], [CPUUtil])
 	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'], [perf_graph])
-	fetchJSONData(path.concat("summary_perf_stat.json"), ['#CacheMiss', '#IPC'], [cache_miss, ipc])
-	fetchJSONData(path.concat("summary_busy_histo.json"), ['#Busy_Histo'], [Busy_Histo])
 
 }
-var coll = document.getElementsByClassName("collapsible");
-var i;
 
-for (i = 0; i < coll.length; i++) {
-  coll[i].addEventListener("click", function() {
-      this.classList.toggle("active");
-	      var content = this.nextElementSibling;
-		      if (content.style.display === "block") {
-			        content.style.display = "none";
-					    } else {
-						      content.style.display = "block";
-							      }
-								    });
-									}
 
 		</script>
 	</body>
