@@ -217,7 +217,8 @@ function fetchJSONData(path, divs, graphs) {
 function loadAllGraphs(path){
 	
 
-	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput', '#RX_Lat'], [Throughput, RX_Lat_histo])
+	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'], [Throughput])
+	fetchJSONData(path.concat("summary_iperf_lat.json"), ['#RX_Lat'], [RX_Lat_histo])
 	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'], [Drops])
 	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI', '#InputQData'], [PpIPI, InputQData])
 	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'], [PktSteer])
