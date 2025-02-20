@@ -254,8 +254,8 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 
 		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) 
-				|| !test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
-				|| (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue) 
+				|| (!test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
+				&& (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue)) 
 				//remove check for process_queue. Reason: The interrupt decision is made base don only input_pkt_queue
 				 /*&& skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue)*/)) {
 
@@ -728,6 +728,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.0" " " "20250220");
+MODULE_VERSION("0.1.1" " " "20250220");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 
