@@ -24,3 +24,7 @@ No overload handling yet
 
 Introduce additional overload check that rules out that packets get steered from their previous core while older packets are still being processed
 
+0.1.4
+
+Loop over busy list until non-overloaded target is found, otherwise send to previous.
+Changes constant time access to busy list to O(n). 

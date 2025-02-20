@@ -301,7 +301,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 			spin_lock(&busy_backlog_lock);
 			if(!list_empty(&rps_busy_backlog)){
-				struct busy_backlog_item *item;
+/*				struct busy_backlog_item *item;
 				if(list_position == MY_LIST_HEAD)
 					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
 				else 
@@ -312,7 +312,30 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					tcpu = item->cpu;
 				}else{
 					stats->noBusyAvailableRace++;
+				}*/
+				struct busy_backlog_item *item;
+				struct list_head *next;	
+
+				list_for_each(next, &rps_busy_backlog){
+					item = list_entry(next, struct busy_backlog_item, list);
+					if (!(skb_queue_len_lockless(&(per_cpu(softnet_data, item->cpu).input_pkt_queue)) > iq_thresh))	break;
+					else							item = NULL;
 				}
+
+				/*if(list_position == MY_LIST_HEAD)
+					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
+				else 
+					item = list_last_entry(&rps_busy_backlog, struct busy_backlog_item, list);
+				*/
+
+				if(item){
+					stats->assignedToBusy++;
+					tcpu = item->cpu;
+				}else{
+					//stats->allBusyOverloaded++;
+				}
+
+
 			}else{
 				stats->noBusyAvailable++;
 			}
@@ -739,6 +762,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.3" " " "20250220");
+MODULE_VERSION("0.1.4" " " "20250220");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 
