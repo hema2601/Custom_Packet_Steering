@@ -31,7 +31,7 @@ for i in range(reps):
 
 
 
-files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json", "perf.json", "perf_stat.json", "busy_histo.json"]
+files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json", "perf.json", "perf_stat.json", "iperf_lat.json", "busy_histo.json"]
 
 os.mkdir("/home/hema/Custom_Packet_Steering/summaries")
 

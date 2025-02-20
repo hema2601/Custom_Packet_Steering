@@ -1,0 +1,56 @@
+[
+{
+"Queue": -1,
+"Type": "dropped",
+"Before": 76519242,
+"After": 76519877
+},
+{
+"Queue": 0,
+"Type": "TX",
+"Before": 1177949722,
+"After": 1178926279
+},
+{
+"Queue": 1,
+"Type": "TX",
+"Before": 25449776,
+"After": 26318858
+},
+{
+"Queue": 2,
+"Type": "TX",
+"Before": 25270599,
+"After": 26060778
+},
+{
+"Queue": 3,
+"Type": "TX",
+"Before": 27312752,
+"After": 28172950
+},
+{
+"Queue": 0,
+"Type": "RX",
+"Before": 20754916059,
+"After": 20763863390
+},
+{
+"Queue": 1,
+"Type": "RX",
+"Before": 519912388,
+"After": 533220362
+},
+{
+"Queue": 2,
+"Type": "RX",
+"Before": 487377639,
+"After": 499355692
+},
+{
+"Queue": 3,
+"Type": "RX",
+"Before": 573636481,
+"After": 583874654
+}
+]

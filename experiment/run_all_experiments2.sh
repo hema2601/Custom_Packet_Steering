@@ -6,7 +6,7 @@ starting_conn=${4:-1}
 
 current_path=/home/hema/Custom_Packet_Steering
 
-name="BigMsg_GRO_Sep_Exp"
+name="BigMsg_GRO_Sep"
 
 exp_name=RSS
 conn=$starting_conn
@@ -77,7 +77,8 @@ rm -r $current_path/summaries
 
 
 #[DANGER] Change this back
-python3 $current_path/merger.py $2 $((conns + 4)) 1
+#python3 $current_path/merger.py $2 $((conns + 4)) 1
+python3 $current_path/merger.py $2 $conns 1
 
 mkdir $current_path/data/$name
 

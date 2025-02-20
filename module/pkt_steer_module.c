@@ -718,4 +718,16 @@ module_init(init_pkt_steer_mod)
 module_exit(exit_pkt_steer_mod)
 MODULE_LICENSE("GPL");
 
+/****************************************************************************
+ *	Versioning																*
+ * ========================================================================	*		
+ * 	Modules with the same first version number use the same custom kernel	*
+ * 	Modules ending in a 0 are a new 'major version'. 						*
+ *	Performance benchmarks for them should be provided.						*
+ *	Modules with the same second version number but different third			*
+ *	differ in minor features. Iterate on the third number until stable 		*
+ *	performance can be observed.											*
+ ****************************************************************************/
+MODULE_VERSION("0.1.0" " " "20250220");
+MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 
