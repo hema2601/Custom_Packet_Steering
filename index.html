@@ -58,105 +58,105 @@
 		<input type="text" id="myInput" placeholder="Enter text">
 
 		<!-- Button to get input value -->
-		<button onclick="getValue()">Get Value!</button>
+		<button onclick="getValue(1)">Get Value!</button>
 		<button type="button" class="collapsible">Throughput Graph</button>
 		<div class="content">
-			<div id="Throughput"></div>
+			<div id="Throughput" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Packet Drops Graph</button>
 		<div class="content">
-			<div id="Drops"></div>
+			<div id="Drops" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Packets Per IPI Graph</button>
 		<div class="content">
-			<div id="PpIPI"></div>
+			<div id="PpIPI" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Cache Miss Graph</button>
 		<div class="content">
-			<div id="CacheMiss"></div>
+			<div id="CacheMiss" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Packet Steering Stats Graph</button>
 		<div class="content">
-			<div id="PktSteer"></div>
+			<div id="PktSteer" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Cpu Utilization Graph</button>
 		<div class="content">
-			<div id="CPUUtil"></div>
+			<div id="CPUUtil" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Input Queue Graph</button>
 		<div class="content">
-			<div id="InputQData"></div>
+			<div id="InputQData" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Perf Graph</button>
 		<div class="content">
-			<div id="Perf"></div>
+			<div id="Perf" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">IPC Graph</button>
 		<div class="content">
-			<div id="IPC"></div>
+			<div id="IPC" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Busy Histogram Graph</button>
 		<div class="content">
-			<div id="Busy_Histo"></div>
+			<div id="Busy_Histo" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">RX Latency Graph</button>
 		<div class="content">
-			<div id="RX_Lat"></div>
+			<div id="RX_Lat" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 
 	</div>
 	<div class="col-md-6">
 
-		<h1>Data: <span id="datadir">None</span></h1>
+		<h1>Data: <span id="datadir2">None</span></h1>
 
 		<!-- Input field -->
-		<input type="text" id="myInput" placeholder="Enter text">
+		<input type="text" id="myInput2" placeholder="Enter text">
 
 		<!-- Button to get input value -->
-		<button onclick="getValue()">Get Value!</button>
+		<button onclick="getValue(2)">Get Value!</button>
 		<button type="button" class="collapsible">Throughput Graph</button>
 		<div class="content">
-			<div id="Throughput"></div>
+			<div id="Throughput2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Packet Drops Graph</button>
 		<div class="content">
-			<div id="Drops"></div>
+			<div id="Drops2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Packets Per IPI Graph</button>
 		<div class="content">
-			<div id="PpIPI"></div>
+			<div id="PpIPI2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Cache Miss Graph</button>
 		<div class="content">
-			<div id="CacheMiss"></div>
+			<div id="CacheMiss2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Packet Steering Stats Graph</button>
 		<div class="content">
-			<div id="PktSteer"></div>
+			<div id="PktSteer2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Cpu Utilization Graph</button>
 		<div class="content">
-			<div id="CPUUtil"></div>
+			<div id="CPUUtil2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Input Queue Graph</button>
 		<div class="content">
-			<div id="InputQData"></div>
+			<div id="InputQData2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Perf Graph</button>
 		<div class="content">
-			<div id="Perf"></div>
+			<div id="Perf2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">IPC Graph</button>
 		<div class="content">
-			<div id="IPC"></div>
+			<div id="IPC2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Busy Histogram Graph</button>
 		<div class="content">
-			<div id="Busy_Histo"></div>
+			<div id="Busy_Histo2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">RX Latency Graph</button>
 		<div class="content">
-			<div id="RX_Lat"></div>
+			<div id="RX_Lat2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 
 	</div>
@@ -167,20 +167,36 @@
 			var base_path = "data/exp_under_sparse/"
 
 var ds = document.getElementById("datadir");
+var ds2 = document.getElementById("datadir2");
 console.log(ds.innerHTML)
 
-function getValue() {
+function getValue(div_num) {
 	// Get the input element by its ID
-	let inputField = document.getElementById("myInput");
+	
+	if(div_num == 1){
 
-	// Get the value of the input field
-	let value = inputField.value;
+		let inputField = document.getElementById("myInput");
 
-	document.getElementById("datadir").innerHTML = value;
+		// Get the value of the input field
+		let value = inputField.value;
 
-	//loadAllGraphs("./summaries/")
-	loadAllGraphs("data/".concat(value).concat("/summaries/"))
+		document.getElementById("datadir").innerHTML = value;
 
+		//loadAllGraphs("./summaries/")
+		loadAllGraphs("data/".concat(value).concat("/summaries/"), "")
+
+	}else{
+		let inputField = document.getElementById("myInput2");
+
+		// Get the value of the input field
+		let value = inputField.value;
+
+		document.getElementById("datadir2").innerHTML = value;
+
+		//loadAllGraphs("./summaries/")
+		loadAllGraphs("data/".concat(value).concat("/summaries/"), "2")
+
+	}
 }
 
 
@@ -214,18 +230,18 @@ function fetchJSONData(path, divs, graphs) {
 				console.error("Unable to fetch data:", error));
 }
 
-function loadAllGraphs(path){
+function loadAllGraphs(path, postfix){
 	
 
-	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'], [Throughput])
-	fetchJSONData(path.concat("summary_iperf_lat.json"), ['#RX_Lat'], [RX_Lat_histo])
-	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'], [Drops])
-	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI', '#InputQData'], [PpIPI, InputQData])
-	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'], [PktSteer])
-	fetchJSONData(path.concat("summary_proc_stat.json"), ['#CPUUtil'], [CPUUtil])
-	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'], [perf_graph])
-	fetchJSONData(path.concat("summary_perf_stat.json"), ['#CacheMiss', '#IPC'], [cache_miss, ipc])
-	fetchJSONData(path.concat("summary_busy_histo.json"), ['#Busy_Histo'], [Busy_Histo])
+	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'.concat(postfix)], [Throughput])
+	fetchJSONData(path.concat("summary_iperf_lat.json"), ['#RX_Lat'.concat(postfix)], [RX_Lat_histo])
+	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'.concat(postfix)], [Drops])
+	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI'.concat(postfix), '#InputQData'.concat(postfix)], [PpIPI, InputQData])
+	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'.concat(postfix)], [PktSteer])
+	fetchJSONData(path.concat("summary_proc_stat.json"), ['#CPUUtil'.concat(postfix)], [CPUUtil])
+	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'.concat(postfix)], [perf_graph])
+	fetchJSONData(path.concat("summary_perf_stat.json"), ['#CacheMiss'.concat(postfix), '#IPC'.concat(postfix)], [cache_miss, ipc])
+	fetchJSONData(path.concat("summary_busy_histo.json"), ['#Busy_Histo'.concat(postfix)], [Busy_Histo])
 
 }
 var coll = document.getElementsByClassName("collapsible");
