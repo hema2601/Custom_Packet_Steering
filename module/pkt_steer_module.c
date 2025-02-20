@@ -86,7 +86,9 @@ static unsigned long flow_table_size __read_mostly = 32768;
 module_param(flow_table_size, ulong, 0644);
 MODULE_PARM_DESC(flow_table_size, "Define the number of maximum flows for IAPS");
 
-
+static int iq_thresh __read_mostly = 100;
+module_param(iq_thresh, int, 0644);
+MODULE_PARM_DESC(iq_thresh, "Define the limit of packets in the input queue after which a core will be considered overloaded");
 
 static struct rps_dev_flow_table __rcu *iaps_flow_table;
 
@@ -255,9 +257,8 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) 
 				|| (!test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
-				&& (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue)) 
-				//remove check for process_queue. Reason: The interrupt decision is made base don only input_pkt_queue
-				 /*&& skb_queue_empty(&per_cpu(softnet_data, tcpu).process_queue)*/)) {
+				&& (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue))) 
+				|| skb_queue_len_lockless(&(per_cpu(softnet_data, tcpu).input_pkt_queue)) > iq_thresh) {
 
 			if(tcpu >= nr_cpu_ids || !cpu_online(tcpu)){
 				stats->prevInvalid++;
@@ -728,6 +729,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.1" " " "20250220");
+MODULE_VERSION("0.1.2" " " "20250220");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 
