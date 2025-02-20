@@ -254,16 +254,26 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		rflow = &flow_table->flows[hash & flow_table->mask];
 		tcpu = rflow->cpu;
 
+		uint8_t invalid = 0, idle = 0, overloaded = 0;
 
-		if(tcpu >= nr_cpu_ids || !cpu_online(tcpu) 
-				|| (!test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
-				&& (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue))) 
-				|| skb_queue_len_lockless(&(per_cpu(softnet_data, tcpu).input_pkt_queue)) > iq_thresh) {
+		if(( invalid = (tcpu >= nr_cpu_ids || !cpu_online(tcpu))) 
+				|| (idle = (!test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
+				&& (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue))) )
+				|| (overloaded = (skb_queue_len_lockless(&(per_cpu(softnet_data, tcpu).input_pkt_queue)) > iq_thresh))) {
 
-			if(tcpu >= nr_cpu_ids || !cpu_online(tcpu)){
+			if(invalid){
 				stats->prevInvalid++;
-			}else{
+			}else if (idle){
 				stats->prevIdle++;
+			}else{	//overloaded
+				//stats->prevOverloaded++;
+				//If packets of this flow are still enqueued, jump out of new target selection
+				if ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
+					 rflow->last_qtail) < 0)
+					goto confirm_target;
+				
+				//stats->fromOverloaded++;
+
 			}
 
 			//[TODO] Decide backup core
@@ -310,7 +320,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, tcpu);
 		}
-
+confirm_target:
 		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
 			*rflowp = rflow;
 			cpu = tcpu;
@@ -729,6 +739,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.2" " " "20250220");
+MODULE_VERSION("0.1.3" " " "20250220");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 

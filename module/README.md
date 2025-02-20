@@ -20,3 +20,7 @@ Before it was
 Reintroduced overload checking at busy core detection.
 No overload handling yet
 
+0.1.3
+
+Introduce additional overload check that rules out that packets get steered from their previous core while older packets are still being processed
+
