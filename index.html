@@ -11,8 +11,10 @@
 		<script src="web/components/cpu_util_graph.js"></script>
 		<script src="web/components/drop_graph.js"></script>
 		<script src="web/components/ipi_graph.js"></script>
+		<script src="web/components/ipi_error_graph.js"></script>
 		<script src="web/components/pkt_steer_graph.js"></script>
 		<script src="web/components/tp_graph.js"></script>
+		<script src="web/components/tp_min_max_graph.js"></script>
 		<script src="web/components/inputq_graph.js"></script>
 		<script src="web/components/perf_graph.js"></script>
 		<script src="web/components/cache_miss_graph.js"></script>
@@ -61,7 +63,8 @@
 		<button onclick="getValue(1)">Get Value!</button>
 		<button type="button" class="collapsible">Throughput Graph</button>
 		<div class="content">
-			<div id="Throughput" style="overflow-x:scroll;" class="col-md-12"></div>
+			<div id="Throughput" style="overflow-x:scroll;" class="col-md-6"></div>
+			<div id="ThroughputMM" style="overflow-x:scroll;" class="col-md-6"></div>
 		</div>
 		<button type="button" class="collapsible">Packet Drops Graph</button>
 		<div class="content">
@@ -69,7 +72,8 @@
 		</div>
 		<button type="button" class="collapsible">Packets Per IPI Graph</button>
 		<div class="content">
-			<div id="PpIPI" style="overflow-x:scroll;" class="col-md-12"></div>
+			<div id="PpIPI" style="overflow-x:scroll;" class="col-md-6"></div>
+			<div id="PpIPI_err" style="overflow-x:scroll;" class="col-md-6"></div>
 		</div>
 		<button type="button" class="collapsible">Cache Miss Graph</button>
 		<div class="content">
@@ -116,7 +120,8 @@
 		<button onclick="getValue(2)">Get Value!</button>
 		<button type="button" class="collapsible">Throughput Graph</button>
 		<div class="content">
-			<div id="Throughput2" style="overflow-x:scroll;" class="col-md-12"></div>
+			<div id="Throughput2" style="overflow-x:scroll;" class="col-md-6"></div>
+			<div id="ThroughputMM2" style="overflow-x:scroll;" class="col-md-6"></div>
 		</div>
 		<button type="button" class="collapsible">Packet Drops Graph</button>
 		<div class="content">
@@ -124,7 +129,8 @@
 		</div>
 		<button type="button" class="collapsible">Packets Per IPI Graph</button>
 		<div class="content">
-			<div id="PpIPI2" style="overflow-x:scroll;" class="col-md-12"></div>
+			<div id="PpIPI2" style="overflow-x:scroll;" class="col-md-6"></div>
+			<div id="PpIPI_err2" style="overflow-x:scroll;" class="col-md-6"></div>
 		</div>
 		<button type="button" class="collapsible">Cache Miss Graph</button>
 		<div class="content">
@@ -233,10 +239,10 @@ function fetchJSONData(path, divs, graphs) {
 function loadAllGraphs(path, postfix){
 	
 
-	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'.concat(postfix)], [Throughput])
+	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'.concat(postfix), '#ThroughputMM'.concat(postfix)], [Throughput, ThroughputMM])
 	fetchJSONData(path.concat("summary_iperf_lat.json"), ['#RX_Lat'.concat(postfix)], [RX_Lat_histo])
 	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'.concat(postfix)], [Drops])
-	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI'.concat(postfix), '#InputQData'.concat(postfix)], [PpIPI, InputQData])
+	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI'.concat(postfix), '#PpIPI_err'.concat(postfix),'#InputQData'.concat(postfix)], [PpIPI, PpIPI_err, InputQData])
 	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'.concat(postfix)], [PktSteer])
 	fetchJSONData(path.concat("summary_proc_stat.json"), ['#CPUUtil'.concat(postfix)], [CPUUtil])
 	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'.concat(postfix)], [perf_graph])

@@ -3,8 +3,8 @@ var PpIPI = {
 "data": {
   "name":"myData"
    },
-   "width":220,
-   "height":220,
+   "width":420,
+   "height":420,
    "transform": [
      {"filter":"datum.CPU >= 0 && datum.CPU <= 7"},
 //	   {"filter":"datum.Exp == 'Custom1' || datum.Exp == 'RFS' || datum.Exp == 'RPS'"},
