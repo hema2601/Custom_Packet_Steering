@@ -41,6 +41,9 @@ struct my_ops_stats{
 	int prevInvalid;
 	int prevIdle;
 	int choseInvalid;
+	int toOverloaded;
+	int fromOverloaded;
+	int allBusyOverloaded;
 };
 
 static int num_curr_cpus = 1;
@@ -266,13 +269,13 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 			}else if (idle){
 				stats->prevIdle++;
 			}else{	//overloaded
-				//stats->prevOverloaded++;
+				stats->prevOverloaded++;
 				//If packets of this flow are still enqueued, jump out of new target selection
 				if ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
 					 rflow->last_qtail) < 0)
 					goto confirm_target;
 				
-				//stats->fromOverloaded++;
+				stats->fromOverloaded++;
 
 			}
 
@@ -332,7 +335,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					stats->assignedToBusy++;
 					tcpu = item->cpu;
 				}else{
-					//stats->allBusyOverloaded++;
+					stats->allBusyOverloaded++;
 				}
 
 
@@ -545,7 +548,7 @@ static int my_proc_show(struct seq_file *m,void *v){
 
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback);
+		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded);
 	}
 
 	return 0;
@@ -762,6 +765,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.4" " " "20250220");
+MODULE_VERSION("0.1.5" " " "20250227");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 
