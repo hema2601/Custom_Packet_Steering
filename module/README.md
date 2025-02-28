@@ -31,4 +31,8 @@ Changes constant time access to busy list to O(n).
 
 0.1.5
 
-Reintroduced some values to track the efficiency of the overload handling mechnism
+Reintroduced some values to track the efficiency of the overload handling mechanism
+
+0.1.6
+
+Reintroducing the busy histogram
