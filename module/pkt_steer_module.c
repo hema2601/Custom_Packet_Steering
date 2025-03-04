@@ -337,8 +337,12 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					tcpu = this_cpu;
 					break;
 				case RPS:
-					if (map) 
-						tcpu = map->cpus[reciprocal_scale(hash, map->len)];
+0.1.7
+
+Load Balancing Timer Updated to former version again (not using the cfs utilization)
+					tcpu = (has % max_cpus) + base_cpu;
+					//if (map) 
+					//	tcpu = map->cpus[reciprocal_scale(hash, map->len)];
 					break;
 				case APP:
 					tcpu = perform_rfs(dev, skb);
@@ -855,6 +859,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.7" " " "20250304");
+MODULE_VERSION("0.1.8" " " "20250304");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 

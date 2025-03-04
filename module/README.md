@@ -40,3 +40,9 @@ Reintroducing the busy histogram
 0.1.7
 
 Restored load balancing timer (not using cfs utilization)
+(This caused performance regression, look into the reason)
+
+0.1.8
+
+Introduce RPS-like steering between all IAPS-available cores (change the RPS Backup Core Decision)
+
