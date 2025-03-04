@@ -5,8 +5,9 @@ import sys
 
 reps = int(sys.argv[1])
 conns_pow_of_2 = int(sys.argv[2])
-if len(sys.argv) > 3:
-    base_dir = sys.argv[3]
+exponential = int(sys.argv[3])
+if len(sys.argv) > 4:
+    base_dir = sys.argv[4]
 else:
     base_dir = "."
 #bases = ["RSS", "RPS", "RFS", "Custom"]
@@ -17,7 +18,10 @@ exp = 1
 tmp = []
 for i in range(conns_pow_of_2):
     for base in bases:
-        tmp.append(base+"_"+str(exp))
+        if exponential == 1:
+            tmp.append(base+"_"+str(exp))
+        else:
+            tmp.append(base+"_"+str(i+1))
     exp *= 2
 
 for i in range(reps):
@@ -27,7 +31,7 @@ for i in range(reps):
 
 
 
-files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json", "perf.json", "perf_stat.json", "busy_histo.json"]
+files = ["iperf.json", "irq.json", "packet_cnt.json", "softirq.json", "softnet.json", "pkt_steer.json", "latency.json", "proc_stat.json", "perf.json", "perf_stat.json", "iperf_lat.json", "busy_histo.json"]
 
 os.mkdir("/home/hema/Custom_Packet_Steering/summaries")
 

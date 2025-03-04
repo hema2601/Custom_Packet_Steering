@@ -8,14 +8,11 @@ var Drops = {
  "transform": [
   //{"filter":"datum.CPU >= 0 && datum.CPU <= 7"},
   // {"filter":"datum.Exp == 'Custom1' || datum.Exp == 'RFS' || datum.Exp == 'RPS'"},
-    
+    {"calculate":"(datum.Exp == 'Custom1') ? 'IAPS': datum.Exp", "as":"Scheme"},
 	 {"filter":"datum.Type == 'dropped'"},
-	  {"calculate":"datum.After - datum.Before", "as":"value"},
-		{"calculate": "(datum.Exp == 'Custom1') ? 'IAPS+RFS':datum.Exp", "as":"Scheme"},
-
-		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
+	  {"calculate":"datum.After - datum.Before", "as":"value"}
 	   ],
-	   "mark": {"type":"bar","tooltip":true},
+	   "mark": "bar",
 	   "encoding": {
 	    "x": {"field": "Conns", "type": "ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":360}},
 		 "xOffset": {"field": "Scheme", "sort":"['RPS', 'RFS', 'IAPS']"},

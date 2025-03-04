@@ -2,14 +2,14 @@
 intf=$1
 rep=$2
 conns=$3
+starting_conn=${4:-1}
 
 current_path=/home/hema/Custom_Packet_Steering
-
 
 name="BigMsg_GRO_Sep"
 
 exp_name=RSS
-conn=1
+conn=$starting_conn
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
@@ -22,7 +22,7 @@ do
 done
 
 exp_name=RPS
-conn=1
+conn=$starting_conn
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
@@ -35,7 +35,7 @@ do
 done
 
 exp_name=RFS
-conn=1
+conn=$starting_conn
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
@@ -48,7 +48,7 @@ do
 done
 
 exp_name=Custom1
-conn=1
+conn=$starting_conn
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
@@ -61,7 +61,7 @@ do
 done
 
 exp_name=Custom2
-conn=1
+conn=$starting_conn
 for((i=1;i<=$conns;i++));
 do
 	for((j=1;j<=$rep;j++));
@@ -75,7 +75,10 @@ done
 
 rm -r $current_path/summaries
 
-python3 $current_path/merger.py $2 $3
+
+#[DANGER] Change this back
+#python3 $current_path/merger.py $2 $((conns + 4)) 1
+python3 $current_path/merger.py $2 $conns 1
 
 mkdir $current_path/data/$name
 

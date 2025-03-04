@@ -4,17 +4,21 @@ var RX_Lat_histo = {
 	"name":"myData"
 },
 
-"transform":[
-	{"filter":{"field": "start", "valid": true}},
+"transform": [
+	{"calculate":"datum.count / datum.total", "as":"percentage"}
 ],
-	"mark": {"type":"bar","tooltip":true},
-	"encoding": {
-		"x": {"bin": {"binned":true, "step":5000}, "field": "start"},
-		"x2":{"field":"end"},
-		"y": {"field": "count", "type": "quantitative", "aggregate":"sum"},
-		"row":{"field":"Exp"},
-		"column":{"field":"Conns", "sort":[]}
+	"facet": {"row": {"field": "Exp"}, "column": {"field": "Conns", "sort": []}},
+	"spec": {
+		"mark": {"type": "bar", "tooltip": true},
+		"encoding": {
+			"x": {"bin": {"binned": true, "step": 5000}, "field": "start"},
+			"x2": {"field": "end"},
+			"y": {
+
+				"field": "percentage", "type": "quantitative", "aggregate": "mean",
+				"axis": {"format": "%"}}
+		}
 	}
-
-
 }
+
+

@@ -15,8 +15,9 @@ class Filetype(Enum):
     PERF        = 8
     PERF_STAT   = 9
     BUSY_HISTO  = 10
+    IPERF_LAT   = 11
 
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO'])
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO', 'IPERF_LAT'])
 
 
 class JsonGenerator:
@@ -198,7 +199,7 @@ class IPERFGen(JsonGenerator):
         for interval in tmp_dict["intervals"]:
 
             for stream in interval["streams"]:
-                print(self.json_dict)
+                #print(self.json_dict)
                 elem = dict()
                 elem["bps"] = stream["bits_per_second"]
                 elem["t"] = stream["end"]
@@ -215,25 +216,27 @@ class IPERFGen(JsonGenerator):
 
                         break
 
-                histo = next((end_stream for end_stream in tmp_dict["end"]["streams"] if end_stream['receiver']['socket'] == stream['socket']), None)
-                
-                if(histo == None):
-                    self.json_dict.append(elem)
-                    continue
+                self.json_dict.append(elem)
 
-                histo = histo["receiver"]["rx_ts_histogram"]
+      #          histo = next((end_stream for end_stream in tmp_dict["end"]["streams"] if end_stream['receiver']['socket'] == stream['socket']), None)
+      #          
+      #          if(histo == None):
+      #              self.json_dict.append(elem)
+      #              continue
 
-                elem["min"] = histo["min"]
-                elem["max"] = histo["max"]
-                elem["avg"] = histo["avg"]
-                elem["total"] = histo["total"]
+      #          histo = histo["receiver"]["rx_ts_histogram"]
 
-                for single_bin in histo["bins"]:
-                    new_elem = dict(elem)
-                    new_elem["start"] = single_bin["start"]
-                    new_elem["end"] = single_bin["end"]
-                    new_elem["count"] = single_bin["count"]
-                    self.json_dict.append(new_elem)
+      #          elem["min"] = histo["min"]
+      #          elem["max"] = histo["max"]
+      #          elem["avg"] = histo["avg"]
+      #          elem["total"] = histo["total"]
+
+      #          for single_bin in histo["bins"]:
+      #              new_elem = dict(elem)
+      #              new_elem["start"] = single_bin["start"]
+      #              new_elem["end"] = single_bin["end"]
+      #              new_elem["count"] = single_bin["count"]
+      #              self.json_dict.append(new_elem)
 
       #  for stream in tmp_dict["end"]["streams"]:
 
@@ -349,8 +352,8 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16) - elem["TargetIsSelf"]
                 elem["ChoseInvalid"] = int(parts[7],16) - elem["ChoseInvalid"]
                 elem["Fallback"] = int(parts[8],16) - elem["Fallback"]
-                elem["IsOverloaded"] = int(parts[9],16) - elem["IsOverloaded"]
-                elem["FromOverloaded"] = int(parts[10],16) - elem["FromOverloaded"]
+                #elem["IsOverloaded"] = int(parts[9],16) - elem["IsOverloaded"]
+                #elem["FromOverloaded"] = int(parts[10],16) - elem["FromOverloaded"]
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
@@ -362,8 +365,8 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16)
                 elem["ChoseInvalid"] = int(parts[7],16)
                 elem["Fallback"] = int(parts[8],16)
-                elem["IsOverloaded"] = int(parts[9],16)
-                elem["FromOverloaded"] = int(parts[10],16)
+                #elem["IsOverloaded"] = int(parts[9],16)
+                #elem["FromOverloaded"] = int(parts[10],16)
                 self.json_dict.append(elem)
 
 class PROC_STATGen(JsonGenerator):
@@ -562,9 +565,9 @@ class BUSY_HISTOGen(JsonGenerator):
         for line in self.f:
             parts = [x for x in line.split(' ') if x.strip()]
             idx = 0
-            print("New line " + str(idx))
+            # print("New line " + str(idx))
             for part in parts:
-                print(idx)
+                #print(idx)
                 c = int(part,16)
                 if line_count == 0:
                     elem = dict()
@@ -618,6 +621,63 @@ class BUSY_HISTOGen(JsonGenerator):
        #         elem["Guest"] = int(parts[9])
        #         elem["Guest_Nice"] = int(parts[10])
        #         self.json_dict.append(elem)
+
+class IPERF_LATGen(JsonGenerator):
+
+    def generate_json(self):
+        #print("Generate iperf.json")
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        # print("Read original iperf.json")
+        tmp_dict = json.load(self.f)
+
+        histos = list()
+        histo_stats = dict()
+
+        for stream in tmp_dict["end"]["streams"]:
+
+            histo_stream = stream["receiver"]["rx_ts_histogram"]
+
+            if 'max' in histo_stats:
+
+                histo_stats['max'] = max(histo_stream['max'], histo_stats['max'])
+            else:
+                histo_stats['max'] = histo_stream['max']
+            if 'min' in histo_stats:
+                histo_stats['min'] = min(histo_stream['min'], histo_stats['min'])
+            else:
+                histo_stats['min'] = histo_stream['min']
+            if 'avg' in histo_stats:
+                histo_stats['avg'] = (histo_stats['total'] * histo_stats['avg'] + histo_stream['avg']) / (histo_stats['total'] + histo_stream['total'])
+            else:
+                histo_stats['avg'] = histo_stream['avg']
+            if 'total' in histo_stats:
+                histo_stats['total'] += histo_stream['total']
+
+            else:
+                histo_stats['total'] = histo_stream['total']
+
+            for single_bin in stream["receiver"]["rx_ts_histogram"]["bins"]:
+
+                elem = next((item for item in histos if item["start"] == single_bin["start"]), None)
+                if elem is None:
+                    elem = dict()
+                    elem["start"] = single_bin["start"]
+                    elem["end"] = single_bin["end"]
+                    elem["count"] = single_bin["count"]
+                    histos.append(elem)
+                else:
+                    elem["count"] += single_bin["count"]
+
+        for item in histos:
+            item["max"] = histo_stats["max"]
+            item["min"] = histo_stats["min"]
+            item["avg"] = histo_stats["avg"]
+            item["total"] = histo_stats["total"]
+            self.json_dict.append(item)
 
 
 argc = len(sys.argv)

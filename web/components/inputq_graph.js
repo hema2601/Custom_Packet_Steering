@@ -6,20 +6,17 @@ var InputQData = {
     "transform": [
 	  {"filter":"datum['RPS Interrupts'] != 0"},
 	    {"calculate":"datum['Input Pkts'] / datum['InputQ Dequeued']", "as":"InputQ Length"},
-		  {"calculate":"datum['InputQ Dequeued'] / datum['RPS Interrupts']", "as":"Dequeue per IPI"},
-		{"calculate": "(datum.Exp == 'Custom1') ? 'IAPS+RFS':datum.Exp", "as":"Scheme"},
-
-		{"calculate": "(datum.Scheme == 'Custom2') ? 'IAPS+LB':datum.Scheme", "as":"Scheme"}
+		  {"calculate":"datum['InputQ Dequeued'] / datum['RPS Interrupts']", "as":"Dequeue per IPI"}
 
 		    ],
 			 "repeat":["InputQ Length", "Dequeue per IPI", "Dropped"],
 			  "spec":{
-			   "mark": {"type":"bar","tooltip":true},
+			   "mark": "bar",
 			    "encoding": {
 				   "x": {"field": "Conns", "type": "ordinal", "sort":[]},
-				      "xOffset": {"field": "Scheme",},
+				      "xOffset": {"field": "Exp",},
 					     "y": {"aggregate":"mean","field": {"repeat": "repeat"}, "type": "quantitative"},
-						    "color": {"field": "Scheme", "type": "nominal"}
+						    "color": {"field": "Exp", "type": "nominal"}
 							 }
 							  }
 							  }
