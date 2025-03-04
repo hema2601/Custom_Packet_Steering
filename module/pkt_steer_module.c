@@ -42,11 +42,17 @@ struct my_ops_stats{
 	int prevIdle;
 	int choseInvalid;
 	int toOverloaded;
+	int prevOverloaded;
 	int fromOverloaded;
 	int allBusyOverloaded;
 };
 
 static int num_curr_cpus = 1;
+
+static int curr_busy = 0;
+
+static int *busy_histo;
+static int busy_histo_size;
 
 DEFINE_PER_CPU(struct my_ops_stats, pkt_steer_stats);
 
@@ -347,6 +353,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, tcpu);
 		}
 confirm_target:
+		busy_histo[curr_busy]++;
 		if (tcpu < nr_cpu_ids && cpu_online(tcpu)) {
 			*rflowp = rflow;
 			cpu = tcpu;
@@ -383,8 +390,10 @@ static void this_before(int tcpu){
     
 	spin_lock(&busy_backlog_lock);
 	//printk("Adding to busy list");
-	if(list->prev == list)
+	if(list->prev == list){
+		curr_busy++;
     	list_add(list, &rps_busy_backlog);
+	}
     spin_unlock(&busy_backlog_lock);
    
 }
@@ -395,7 +404,10 @@ static void this_after(int tcpu){
 	
     spin_lock(&busy_backlog_lock);
 	//printk("Removing from busy list");
-	list_del_init(&item->list);
+	if(item->list.prev != &item->list){
+		curr_busy--;
+		list_del_init(&item->list);
+    }
     spin_unlock(&busy_backlog_lock);
 
 }
@@ -551,6 +563,11 @@ static int my_proc_show(struct seq_file *m,void *v){
 		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded);
 	}
 
+	for(i = 0; i < busy_histo_size; i++)	seq_printf(m, "%08x ", busy_histo[i]);
+
+	seq_printf(m, "\n");
+	
+
 	return 0;
 }
 
@@ -703,6 +720,16 @@ static int __init init_pkt_steer_mod(void){
 		item->overloaded = 0;
 	}
 
+	busy_histo_size = cpumask_weight(cpu_possible_mask) + 1;
+	busy_histo = kmalloc_array(busy_histo_size, sizeof(int), GFP_KERNEL);
+
+	if(busy_histo == NULL){
+		printk(KERN_ERR "No more mem\n");
+		return ret;
+	}
+
+	printk("CPUs: %d %d", cpumask_weight(cpu_possible_mask), busy_histo_size);
+
 	ret = create_flow_table(0);
 	if(ret < 0){
 		printk(KERN_ERR "Failed to set up flow table for IAPS (%d)\n", ret);
@@ -748,6 +775,8 @@ static void __exit exit_pkt_steer_mod(void){
 	WRITE_ONCE(net_hotdata.pkt_steer_ops, &pkt_standard_ops);
 		
 	create_flow_table(1);
+
+	kfree(busy_histo);
 	
 }
 
@@ -765,6 +794,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.5" " " "20250227");
+MODULE_VERSION("0.1.6" " " "20250228");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 
