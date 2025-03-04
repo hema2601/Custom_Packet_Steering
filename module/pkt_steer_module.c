@@ -95,6 +95,16 @@ static unsigned long flow_table_size __read_mostly = 32768;
 module_param(flow_table_size, ulong, 0644);
 MODULE_PARM_DESC(flow_table_size, "Define the number of maximum flows for IAPS");
 
+static unsigned long threshold_up __read_mostly = 500;
+
+module_param(threshold_up, ulong, 0644);
+MODULE_PARM_DESC(threshold_up, "Define the upper CPU utilization threshold at which IAPS scales up (if 50%, then give 500)");
+
+static unsigned long threshold_low __read_mostly = 200;
+
+module_param(threshold_low, ulong, 0644);
+MODULE_PARM_DESC(threshold_low, "Define the lower CPU utilization threshold at which IAPS scales down (if 20%, then give 200)");
+
 static int iq_thresh __read_mostly = 100;
 module_param(iq_thresh, int, 0644);
 MODULE_PARM_DESC(iq_thresh, "Define the limit of packets in the input queue after which a core will be considered overloaded");
@@ -205,6 +215,34 @@ done:
 
 }
 
+
+static int previous_invalid(int tcpu){
+    return tcpu >= nr_cpu_ids || !cpu_online(tcpu);
+}
+
+static int previous_still_busy(int tcpu){
+    struct sk_buff_head *target_input_queue = &(per_cpu(softnet_data, tcpu).input_pkt_queue);
+    unsigned long *target_NAPI_state = &per_cpu(softnet_data, tcpu).backlog.state;
+
+
+    unsigned int in_NAPI = test_bit(NAPI_STATE_SCHED, target_NAPI_state);
+    unsigned int has_work = !skb_queue_empty(target_input_queue);
+
+    return in_NAPI || has_work;
+
+}
+
+static int is_overloaded(int tcpu){
+
+    //[TODO] Decide whether input queue length alone is enough, or whether CPU util should be considered as well
+
+    struct sk_buff_head *target_input_queue = &(per_cpu(softnet_data, tcpu).input_pkt_queue);
+
+    return (activate_overload) ? skb_queue_len_lockless(target_input_queue) > iq_thresh
+                               : 0;
+}
+
+
 static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
 
@@ -265,10 +303,10 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 		uint8_t invalid = 0, idle = 0, overloaded = 0;
 
-		if(( invalid = (tcpu >= nr_cpu_ids || !cpu_online(tcpu))) 
-				|| (idle = (!test_bit(NAPI_STATE_SCHED,&per_cpu(softnet_data, tcpu).backlog.state )
-				&& (skb_queue_empty(&per_cpu(softnet_data, tcpu).input_pkt_queue))) )
-				|| (overloaded = (skb_queue_len_lockless(&(per_cpu(softnet_data, tcpu).input_pkt_queue)) > iq_thresh))) {
+		if(			(invalid = previous_invalid(tcpu)) 
+				|| 	(idle = !previous_still_busy(tcpu))
+				|| 	(overloaded = is_overloaded(tcpu))
+		  ) {
 
 			if(invalid){
 				stats->prevInvalid++;
@@ -299,8 +337,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					if(tcpu != -1)
 						break;
 					WARN_ONCE(1, "RFS does not seem to be working, fall back to load balancing");
-					tcpu = (hash % num_curr_cpus) + base_cpu;
-					break;
+					fallthrough;
 				case LB:
 					tcpu = (hash % num_curr_cpus) + base_cpu;
 				case PREV:
@@ -327,7 +364,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 				list_for_each(next, &rps_busy_backlog){
 					item = list_entry(next, struct busy_backlog_item, list);
-					if (!(skb_queue_len_lockless(&(per_cpu(softnet_data, item->cpu).input_pkt_queue)) > iq_thresh))	break;
+					if (!is_overloaded(item->cpu))	break;
 					else							item = NULL;
 				}
 
@@ -609,10 +646,6 @@ static inline unsigned long cpu_util(int cpu){
 	return cpu_util_cfs(cpu);
 }
 
-unsigned long threshold_up = 500;
-unsigned long threshold_low = 200;
-
-
 static void iaps_load_balancer(struct timer_list *timer){
 
 	unsigned long avg_util = 0;
@@ -717,7 +750,6 @@ static int __init init_pkt_steer_mod(void){
 		item->cpu = i;
 		INIT_LIST_HEAD(&item->list);
 		item->sd = &per_cpu(softnet_data, i);
-		item->overloaded = 0;
 	}
 
 	busy_histo_size = cpumask_weight(cpu_possible_mask) + 1;
