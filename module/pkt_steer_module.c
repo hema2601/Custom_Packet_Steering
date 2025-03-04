@@ -337,10 +337,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					tcpu = this_cpu;
 					break;
 				case RPS:
-0.1.7
-
-Load Balancing Timer Updated to former version again (not using the cfs utilization)
-					tcpu = (has % max_cpus) + base_cpu;
+					tcpu = (hash % max_cpus) + base_cpu;
 					//if (map) 
 					//	tcpu = map->cpus[reciprocal_scale(hash, map->len)];
 					break;
