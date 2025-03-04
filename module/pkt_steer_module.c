@@ -26,7 +26,8 @@ struct busy_backlog_item{
 	struct list_head list;
 	struct softnet_data *sd;
 	int cpu;
-	int overloaded;
+	u64 idle;
+	u64 elapsed;
 };
 DEFINE_PER_CPU(struct busy_backlog_item, busy_backlog_item);
 
@@ -108,6 +109,13 @@ MODULE_PARM_DESC(threshold_low, "Define the lower CPU utilization threshold at w
 static int iq_thresh __read_mostly = 100;
 module_param(iq_thresh, int, 0644);
 MODULE_PARM_DESC(iq_thresh, "Define the limit of packets in the input queue after which a core will be considered overloaded");
+
+static int activate_overload __read_mostly = 1;
+module_param(activate_overload, int, 0644);
+MODULE_PARM_DESC(activate_overload, "Toggle overload detection");
+
+
+
 
 static struct rps_dev_flow_table __rcu *iaps_flow_table;
 
@@ -641,41 +649,62 @@ static int create_proc(void){
 
 static struct timer_list lb_timer;
 
-static inline unsigned long cpu_util(int cpu){
 
-	return cpu_util_cfs(cpu);
+static unsigned long get_and_update_cpu_util(struct busy_backlog_item *item, int cpu){
+
+        unsigned long util;
+        unsigned int idle, elapsed, prev_idle, prev_elapsed;
+
+        prev_idle       = item->idle;
+        prev_elapsed    = item->elapsed;
+
+        item->idle = get_cpu_idle_time(cpu, &item->elapsed, 0);
+
+        elapsed = item->elapsed - prev_elapsed;
+        idle    = item->idle - prev_idle;
+
+        util = elapsed/1000 - idle/1000;
+
+        printk("CPU #%d: %lu Idle time: %u (%u)\n", cpu, util, idle/1000, elapsed/1000);
+
+        return util;
+
 }
 
 static void iaps_load_balancer(struct timer_list *timer){
 
-	unsigned long avg_util = 0;
-
-	if(choose_backup_core != LB)
-		goto rearm;
-
-	//Check average utilization
-	for(int i = 0; i < num_curr_cpus; i++){
-		unsigned long util = cpu_util(base_cpu + i);
-
-		avg_util += util;
-	}
-
-	avg_util /= num_curr_cpus;
-
-	//update CPU count
-
-	if(avg_util > threshold_up && num_curr_cpus < max_cpus)
-		num_curr_cpus++;
-	
-	if(avg_util < threshold_low && num_curr_cpus > 1)
-		num_curr_cpus--;
+    unsigned long avg_util = 0;
+    struct busy_backlog_item *item;
 
 
+    //Skip Calculations, if no load balancing needed
+    if(choose_backup_core != LB)
+        goto rearm;
 
 
-	// Rearm Timer
+    //Check average utilization
+    for(int i = 0; i < num_curr_cpus; i++){
+        item = &per_cpu(busy_backlog_item, base_cpu + i);
+        avg_util += get_and_update_cpu_util(item, base_cpu+i);
+    }
+    avg_util /= num_curr_cpus;
+
+
+    //update CPU count
+    if((avg_util > threshold_up) && num_curr_cpus < max_cpus){
+        item = &per_cpu(busy_backlog_item, base_cpu + num_curr_cpus);
+        //Obtain initial values
+        item->idle=get_cpu_idle_time(base_cpu+num_curr_cpus, &item->elapsed, 0);
+        num_curr_cpus++;
+    }
+
+    if(avg_util < threshold_low && num_curr_cpus > 1)
+        num_curr_cpus--;
+
+
+    // Rearm Timer
 rearm:
-	mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
+    mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
 
 }
 
@@ -826,6 +855,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.6" " " "20250228");
+MODULE_VERSION("0.1.7" " " "20250304");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 
