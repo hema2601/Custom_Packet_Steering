@@ -46,6 +46,7 @@ struct my_ops_stats{
 	int prevOverloaded;
 	int fromOverloaded;
 	int allBusyOverloaded;
+	int potentialReorder;
 };
 
 static int num_curr_cpus = 1;
@@ -114,6 +115,9 @@ static int activate_overload __read_mostly = 1;
 module_param(activate_overload, int, 0644);
 MODULE_PARM_DESC(activate_overload, "Toggle overload detection");
 
+static int risk_reorder __read_mostly = 0;
+module_param(risk_reorder, int, 0644);
+MODULE_PARM_DESC(risk_reorder, "Toggle whether packets should be steered away from an overloaded core, even if the previous core still has packets from the same connection");
 
 
 
@@ -324,8 +328,10 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 				stats->prevOverloaded++;
 				//If packets of this flow are still enqueued, jump out of new target selection
 				if ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
-					 rflow->last_qtail) < 0)
-					goto confirm_target;
+					 rflow->last_qtail) < 0){
+					if(!risk_reorder)	goto confirm_target;
+					stats->potentialReorder++;
+				}
 				
 				stats->fromOverloaded++;
 
@@ -594,7 +600,7 @@ static int my_proc_show(struct seq_file *m,void *v){
 
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded);
+		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded, stat.potentialReorder);
 	}
 
 	for(i = 0; i < busy_histo_size; i++)	seq_printf(m, "%08x ", busy_histo[i]);
@@ -844,6 +850,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("1.0.0" " " "20250310");
+MODULE_VERSION("1.0.1" " " "20250310");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 

@@ -355,6 +355,7 @@ class PKT_STEERGen(JsonGenerator):
                 elem["IsOverloaded"] = int(parts[9],16) - elem["IsOverloaded"]
                 elem["FromOverloaded"] = int(parts[10],16) - elem["FromOverloaded"]
                 elem["AllOverloaded"] = int(parts[11],16) - elem["AllOverloaded"]
+                elem["PotentialReorder"] = int(parts[12],16) - elem["PotentialReorder"]
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
@@ -369,6 +370,7 @@ class PKT_STEERGen(JsonGenerator):
                 elem["IsOverloaded"] = int(parts[9],16)
                 elem["FromOverloaded"] = int(parts[10],16)
                 elem["AllOverloaded"] = int(parts[11],16)
+                elem["PotentialReorder"] = int(parts[12],16)
                 self.json_dict.append(elem)
 
 class PROC_STATGen(JsonGenerator):

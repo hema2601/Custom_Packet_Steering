@@ -50,3 +50,7 @@ Introduce RPS-like steering between all IAPS-available cores (change the RPS Bac
 1.0.0
 
 No feature change compare to 0.1.8, but it runs now on the newer kernel patch (wiht the addition of a small debug statement)
+
+1.0.1
+
+Added risk_reorder parameter and potentialReorder stat. Packets can now be forcably steered away from an overloaded core, even if it risks reordering
