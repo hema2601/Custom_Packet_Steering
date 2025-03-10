@@ -247,60 +247,54 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  			}
  
  		}
-
-@@ -6086,15 +6129,30 @@ static int process_backlog(struct napi_s
-             */
-            napi->state &= NAPIF_STATE_THREADED;
-            again = false;
-+           //[HEMA] Changed to here, because this is when the backlog's napi state is changed
-+           if(sd->pkt_steer_ops->mark_as_idle)
-+               sd->pkt_steer_ops->mark_as_idle(smp_processor_id());
+@@ -6086,15 +6129,27 @@ static int process_backlog(struct napi_s
+ 			 */
+ 			napi->state &= NAPIF_STATE_THREADED;
+ 			again = false;
 +
-        } else {
-            skb_queue_splice_tail_init(&sd->input_pkt_queue,
-                           &sd->process_queue);
-+           sd->input_queue_dequeue++;
-+           sd->input_queue_pkts += skb_queue_len_lockless(&sd->process_queue);
-        }
-        backlog_unlock_irq_enable(sd);
-    }
-
-    if (work)
-        rps_input_queue_head_add(sd, work);
-
-
+ 		} else {
+ 			skb_queue_splice_tail_init(&sd->input_pkt_queue,
+ 						   &sd->process_queue);
++			sd->input_queue_dequeue++;
++			sd->input_queue_pkts += skb_queue_len_lockless(&sd->process_queue);
+ 		}
+ 		backlog_unlock_irq_enable(sd);
+ 	}
+ 
+ 	if (work)
+ 		rps_input_queue_head_add(sd, work);
 +//[HEMA] Define new out part to remove from list
 +out:
-+   //Removed. Reason: The kernel does not define the core as idle when it exits process_backlog,but rather when it has no pkts queued on input_pkt_queue
-+   //if(sd->pkt_steer_ops->mark_as_idle)
-+   //  sd->pkt_steer_ops->mark_as_idle();
++	//Removed. Reason: The kernel does not define the core as idle when it exits process_backlog,but rather when it has no pkts queued on input_pkt_queue
++	//if(sd->pkt_steer_ops->mark_as_idle)
++	//	sd->pkt_steer_ops->mark_as_idle();
 +//==============================================
-+   //if(sd->pkt_steer_ops->mark_as_idle)
-+   //  sd->pkt_steer_ops->mark_as_idle(smp_processor_id());
++	if(sd->pkt_steer_ops->mark_as_idle)
++		sd->pkt_steer_ops->mark_as_idle(smp_processor_id());
 +
-    return work;
+ 	return work;
  }
-
-@@ -6879,6 +6937,9 @@ static __latent_entropy void net_rx_acti
+ 
+@@ -6879,6 +6934,9 @@ static __latent_entropy void net_rx_acti
  start:
-    sd->in_net_rx_action = true;
-    local_irq_disable();
-+   //[HEMA] Update ops
-+   sd->pkt_steer_ops = READ_ONCE(net_hotdata.pkt_steer_ops);
-+   //=================
-    list_splice_init(&sd->poll_list, &list);
-    local_irq_enable();
-
-@@ -11883,6 +11944,16 @@ static struct smp_hotplug_thread backlog
-    .setup          = backlog_napi_setup,
+ 	sd->in_net_rx_action = true;
+ 	local_irq_disable();
++	//[HEMA] Update ops
++	sd->pkt_steer_ops = READ_ONCE(net_hotdata.pkt_steer_ops);
++	//=================
+ 	list_splice_init(&sd->poll_list, &list);
+ 	local_irq_enable();
+ 
+@@ -11883,6 +11941,16 @@ static struct smp_hotplug_thread backlog
+ 	.setup			= backlog_napi_setup,
  };
-
+ 
 +//[HEMA] Standard Packet Steering Ops
 +struct pkt_steer_ops pkt_standard_ops = {
-+   .get_rps_cpu = get_rps_cpu,
-+   .set_rps_cpu = set_rps_cpu,
-+   .mark_as_busy = NULL,
-+   .mark_as_idle = NULL
++	.get_rps_cpu = get_rps_cpu,
++	.set_rps_cpu = set_rps_cpu,
++	.mark_as_busy = NULL,
++	.mark_as_idle = NULL
 +};
 +EXPORT_SYMBOL(pkt_standard_ops);
 +//===================================
@@ -308,19 +302,7 @@ diff -urpN ../linux-6.10.8/net/core/dev.c ./linux-6.10.8/net/core/dev.c
  /*
   *       This is called single threaded during boot, so no need
   *       to take the rtnl semaphore.
-@@ -11904,6 +11975,11 @@ static int __init net_dev_init(void)
-    for (i = 0; i < PTYPE_HASH_SIZE; i++)
-        INIT_LIST_HEAD(&ptype_base[i]);
-
-+   //[HEMA] Set standard ops for packet steering
-+   net_hotdata.pkt_steer_ops = &pkt_standard_ops;
-+   //===========================================
-+
-+
-    if (register_pernet_subsys(&netdev_net_ops))
-        goto out;
-
-@@ -11927,7 +12003,12 @@ static int __init net_dev_init(void)
+@@ -11904,6 +11972,11 @@ static int __init net_dev_init(void)
  	for (i = 0; i < PTYPE_HASH_SIZE; i++)
  		INIT_LIST_HEAD(&ptype_base[i]);
  
