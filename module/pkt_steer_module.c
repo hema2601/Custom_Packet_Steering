@@ -338,8 +338,6 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					break;
 				case RPS:
 					tcpu = (hash % max_cpus) + base_cpu;
-					//if (map) 
-					//	tcpu = map->cpus[reciprocal_scale(hash, map->len)];
 					break;
 				case APP:
 					tcpu = perform_rfs(dev, skb);
@@ -356,18 +354,6 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 			spin_lock(&busy_backlog_lock);
 			if(!list_empty(&rps_busy_backlog)){
-/*				struct busy_backlog_item *item;
-				if(list_position == MY_LIST_HEAD)
-					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-				else 
-					item = list_last_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-
-				if(item){
-					stats->assignedToBusy++;
-					tcpu = item->cpu;
-				}else{
-					stats->noBusyAvailableRace++;
-				}*/
 				struct busy_backlog_item *item;
 				struct list_head *next;	
 
@@ -376,12 +362,6 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					if (!is_overloaded(item->cpu))	break;
 					else							item = NULL;
 				}
-
-				/*if(list_position == MY_LIST_HEAD)
-					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-				else 
-					item = list_last_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-				*/
 
 				if(item){
 					stats->assignedToBusy++;
@@ -393,6 +373,14 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 			}else{
 				stats->noBusyAvailable++;
+
+				//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
+				if(previous_still_busy(tcpu)){
+					printk("Actually Steered to Busy Core!!\n");
+				}
+	
+
+
 			}
 			spin_unlock(&busy_backlog_lock);
 
@@ -856,6 +844,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.8" " " "20250304");
+MODULE_VERSION("1.0.0" " " "20250310");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 

@@ -46,3 +46,7 @@ Restored load balancing timer (not using cfs utilization)
 
 Introduce RPS-like steering between all IAPS-available cores (change the RPS Backup Core Decision)
 
+
+1.0.0
+
+No feature change compare to 0.1.8, but it runs now on the newer kernel patch (wiht the addition of a small debug statement)
