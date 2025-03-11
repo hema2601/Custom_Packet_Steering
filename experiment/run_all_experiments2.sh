@@ -47,31 +47,40 @@ do
 	conn=$((conn*2))
 done
 
+echo 1 > /sys/module/pkt_steer_module/parameters/risk_reorder
 exp_name=Custom1
 conn=$starting_conn
 for((i=1;i<=$conns;i++));
 do
-	for((j=1;j<=$rep;j++));
-	do
-		dir="$exp_name"_"$conn"_"$j"
-		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 1 $conn $intf 0 4 1 1
-	done
-	conn=$((conn*2))
+    for((j=1;j<=$rep;j++));
+    do
+        dir="$exp_name"_"$i"_"$j"
+        echo $dir
+        $current_path/run_mini_project.sh $dir 0 0 0 1 1 $conn $intf 0 4 1 1
+    done
+    conn=$((conn*2))
 done
+
+
+echo 600 > /sys/module/pkt_steer_module/parameters/threshold_low
+echo 900 > /sys/module/pkt_steer_module/parameters/threshold_low
 
 exp_name=Custom2
 conn=$starting_conn
 for((i=1;i<=$conns;i++));
 do
-	for((j=1;j<=$rep;j++));
-	do
-		dir="$exp_name"_"$conn"_"$j"
-		echo $dir
-		$current_path/run_mini_project.sh $dir 0 0 0 1 4 $conn $intf 0 4 1 1
-	done
-	conn=$((conn*2))
+    for((j=1;j<=$rep;j++));
+    do
+        dir="$exp_name"_"$i"_"$j"
+        echo $dir
+        $current_path/run_mini_project.sh $dir 0 0 0 1 4 $conn $intf 0 4 1 1
+    done
+    conn=$((conn*2))
 done
+
+echo 200 > /sys/module/pkt_steer_module/parameters/threshold_low
+echo 500 > /sys/module/pkt_steer_module/parameters/threshold_low
+
 
 rm -r $current_path/summaries
 

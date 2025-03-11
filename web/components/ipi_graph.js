@@ -12,7 +12,7 @@ var PpIPI = {
 		   {"filter":"datum.Processed != 0"},
 		     {"calculate":"(datum.Exp == 'Custom1') ? 'IAPS': datum.Exp", "as":"Scheme"}
 			   ],
-			   "mark": "bar",
+			   "mark": {"type": "bar", "tooltip":true},
 			   "encoding": {
 			     "x": {"field": "Conns", "type": "ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":360}},
 				   "xOffset": {"field": "Scheme", "sort":"['RPS', 'RFS', 'IAPS']"},
