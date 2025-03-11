@@ -9,7 +9,8 @@ var PktSteer = {
 		"Overloaded",
 		"CalcFromOverloaded",
 		"ToOverloaded",
-		"AllOverloaded"
+		"AllOverloaded",
+		"PotentialReorder"
 	],
 	"spec": {
 		"data": {
