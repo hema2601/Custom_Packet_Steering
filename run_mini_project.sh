@@ -212,6 +212,10 @@ PERFSTAT_PID=$!
 # Run iperf3
 #taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} > /dev/null"&
 taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J $IPERF_CUSTOM_ARGS > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M ${mss} -t ${time} > /dev/null"&
+
+# For use in virtual environment, we use the reverse iperf setting (no custom iperf is usable)
+#ssh $remote_client_addr "iperf3 -s -1 > /dev/null" & taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -c 10.0.0.4 -J -P ${conns} -M ${mss} -t ${time}> $current_path/iperf.json &
+
 IPERF_PID=$!
 
 # Perform Latency Test 
