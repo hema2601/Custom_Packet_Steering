@@ -21,7 +21,7 @@
 DEFINE_SPINLOCK(busy_backlog_lock);
 LIST_HEAD(rps_busy_backlog);
 
-struct busy_backlog_item{
+struct backlog_item{
 
 	struct list_head list;
 	struct softnet_data *sd;
@@ -29,7 +29,7 @@ struct busy_backlog_item{
 	u64 idle;
 	u64 elapsed;
 };
-DEFINE_PER_CPU(struct busy_backlog_item, busy_backlog_item);
+DEFINE_PER_CPU(struct backlog_item, backlog_item);
 
 
 struct my_ops_stats{
@@ -360,11 +360,11 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 			spin_lock(&busy_backlog_lock);
 			if(!list_empty(&rps_busy_backlog)){
-				struct busy_backlog_item *item;
+				struct backlog_item *item;
 				struct list_head *next;	
 
 				list_for_each(next, &rps_busy_backlog){
-					item = list_entry(next, struct busy_backlog_item, list);
+					item = list_entry(next, struct backlog_item, list);
 					if (!is_overloaded(item->cpu))	break;
 					else							item = NULL;
 				}
@@ -425,7 +425,7 @@ done:
 
 static void this_before(int tcpu){
 
-	struct list_head *list = &(per_cpu(busy_backlog_item, tcpu).list);	
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).list);	
 	
     
 	spin_lock(&busy_backlog_lock);
@@ -440,7 +440,7 @@ static void this_before(int tcpu){
 
 static void this_after(int tcpu){
 	
-	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, tcpu);	
+	struct backlog_item *item = &per_cpu(backlog_item, tcpu);	
 	
     spin_lock(&busy_backlog_lock);
 	//printk("Removing from busy list");
@@ -645,7 +645,7 @@ static int create_proc(void){
 static struct timer_list lb_timer;
 
 
-static unsigned long get_and_update_cpu_util(struct busy_backlog_item *item, int cpu){
+static unsigned long get_and_update_cpu_util(struct backlog_item *item, int cpu){
 
         unsigned long util;
         unsigned int idle, elapsed, prev_idle, prev_elapsed;
@@ -669,7 +669,7 @@ static unsigned long get_and_update_cpu_util(struct busy_backlog_item *item, int
 static void iaps_load_balancer(struct timer_list *timer){
 
     unsigned long avg_util = 0;
-    struct busy_backlog_item *item;
+    struct backlog_item *item;
 
 
     //Skip Calculations, if no load balancing needed
@@ -679,7 +679,7 @@ static void iaps_load_balancer(struct timer_list *timer){
 
     //Check average utilization
     for(int i = 0; i < num_curr_cpus; i++){
-        item = &per_cpu(busy_backlog_item, base_cpu + i);
+        item = &per_cpu(backlog_item, base_cpu + i);
         avg_util += get_and_update_cpu_util(item, base_cpu+i);
     }
     avg_util /= num_curr_cpus;
@@ -687,7 +687,7 @@ static void iaps_load_balancer(struct timer_list *timer){
 
     //update CPU count
     if((avg_util > threshold_up) && num_curr_cpus < max_cpus){
-        item = &per_cpu(busy_backlog_item, base_cpu + num_curr_cpus);
+        item = &per_cpu(backlog_item, base_cpu + num_curr_cpus);
         //Obtain initial values
         item->idle=get_cpu_idle_time(base_cpu+num_curr_cpus, &item->elapsed, 0);
         num_curr_cpus++;
@@ -765,11 +765,11 @@ static int create_flow_table(int destroy){
 static int __init init_pkt_steer_mod(void){
 	int ret;
 	int i;
-	struct busy_backlog_item *item;
+	struct backlog_item *item;
 	printk("Inserting Module");
 	
 	for_each_possible_cpu(i){
-		item = &per_cpu(busy_backlog_item, i);
+		item = &per_cpu(backlog_item, i);
 
 		item->cpu = i;
 		INIT_LIST_HEAD(&item->list);
