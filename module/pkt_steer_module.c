@@ -19,7 +19,7 @@
 
 
 DEFINE_SPINLOCK(busy_backlog_lock);
-LIST_HEAD(rps_busy_backlog);
+LIST_HEAD(busy_backlog);
 
 struct backlog_item{
 
@@ -359,11 +359,11 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 			}
 
 			spin_lock(&busy_backlog_lock);
-			if(!list_empty(&rps_busy_backlog)){
+			if(!list_empty(&busy_backlog)){
 				struct backlog_item *item;
 				struct list_head *next;	
 
-				list_for_each(next, &rps_busy_backlog){
+				list_for_each(next, &busy_backlog){
 					item = list_entry(next, struct backlog_item, list);
 					if (!is_overloaded(item->cpu))	break;
 					else							item = NULL;
@@ -432,7 +432,7 @@ static void this_before(int tcpu){
 	//printk("Adding to busy list");
 	if(list->prev == list){
 		curr_busy++;
-    	list_add(list, &rps_busy_backlog);
+    	list_add(list, &busy_backlog);
 	}
     spin_unlock(&busy_backlog_lock);
    
@@ -792,7 +792,7 @@ static int __init init_pkt_steer_mod(void){
 		return ret;
 	}
 
-	if(!list_empty(&rps_busy_backlog)){
+	if(!list_empty(&busy_backlog)){
 		printk(KERN_ERR "Busy Backlog still has entries. Abort.");
 		create_flow_table(1);
 		return -1;
