@@ -18,7 +18,7 @@
 #include "/home/hema/Custom_Packet_Steering/linux-6.10.8/kernel/sched/sched.h"
 
 
-DEFINE_SPINLOCK(busy_backlog_lock);
+DEFINE_SPINLOCK(backlog_lock);
 LIST_HEAD(busy_backlog);
 
 struct backlog_item{
@@ -358,7 +358,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					break;
 			}
 
-			spin_lock(&busy_backlog_lock);
+			spin_lock(&backlog_lock);
 			if(!list_empty(&busy_backlog)){
 				struct backlog_item *item;
 				struct list_head *next;	
@@ -388,7 +388,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 
 			}
-			spin_unlock(&busy_backlog_lock);
+			spin_unlock(&backlog_lock);
 
 			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, tcpu);
 		}
@@ -428,13 +428,13 @@ static void this_before(int tcpu){
 	struct list_head *list = &(per_cpu(backlog_item, tcpu).list);	
 	
     
-	spin_lock(&busy_backlog_lock);
+	spin_lock(&backlog_lock);
 	//printk("Adding to busy list");
 	if(list->prev == list){
 		curr_busy++;
     	list_add(list, &busy_backlog);
 	}
-    spin_unlock(&busy_backlog_lock);
+    spin_unlock(&backlog_lock);
    
 }
 
@@ -442,13 +442,13 @@ static void this_after(int tcpu){
 	
 	struct backlog_item *item = &per_cpu(backlog_item, tcpu);	
 	
-    spin_lock(&busy_backlog_lock);
+    spin_lock(&backlog_lock);
 	//printk("Removing from busy list");
 	if(item->list.prev != &item->list){
 		curr_busy--;
 		list_del_init(&item->list);
     }
-    spin_unlock(&busy_backlog_lock);
+    spin_unlock(&backlog_lock);
 
 }
 
