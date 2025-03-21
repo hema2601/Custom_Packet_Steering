@@ -270,6 +270,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	int this_cpu = smp_processor_id();
 	u32 tcpu;
 	u32 hash;
+	unsigned long flags;
 
 	stats = &per_cpu(pkt_steer_stats, this_cpu);
 
@@ -359,7 +360,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					break;
 			}
 
-			spin_lock(&backlog_lock);
+			spin_lock_irqsave(&backlog_lock, flags);
 			if(!list_empty(&busy_backlog)){
 				struct backlog_item *item;
 				struct list_head *next;	
@@ -389,7 +390,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 
 			}
-			spin_unlock(&backlog_lock);
+			spin_unlock_irqrestore(&backlog_lock, flags);
 
 			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, tcpu);
 		}
@@ -426,30 +427,32 @@ done:
 
 static void this_before(int tcpu){
 
+	unsigned long flags;
 	struct list_head *list = &(per_cpu(backlog_item, tcpu).list);	
 	
     
-	spin_lock(&backlog_lock);
+	spin_lock_irqsave(&backlog_lock, flags);
 	//printk("Adding to busy list");
 	if(list->prev == list){
 		curr_busy++;
     	list_add(list, &busy_backlog);
 	}
-    spin_unlock(&backlog_lock);
+	spin_unlock_irqrestore(&backlog_lock, flags);
    
 }
 
 static void this_after(int tcpu){
 	
+	unsigned long flags;
 	struct backlog_item *item = &per_cpu(backlog_item, tcpu);	
 	
-    spin_lock(&backlog_lock);
+    spin_lock_irqsave(&backlog_lock, flags);
 	//printk("Removing from busy list");
 	if(item->list.prev != &item->list){
 		curr_busy--;
 		list_del_init(&item->list);
     }
-    spin_unlock(&backlog_lock);
+    spin_unlock_irqrestore(&backlog_lock, flags);
 
 }
 
