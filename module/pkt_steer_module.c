@@ -383,7 +383,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 				//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
 				if(previous_still_busy(tcpu)){
-					printk("Actually Steered to Busy Core!!\n");
+					pr_debug("Actually Steered to Busy Core!!\n");
 				}
 	
 
@@ -636,7 +636,7 @@ static int create_proc(void){
 	if(!entry){
 		return -1;
 	}else{
-		printk(KERN_INFO "create proc file successfully\n");
+		pr_info("Create proc file successfully\n");
 	}
 	return 0;
 
@@ -661,7 +661,7 @@ static unsigned long get_and_update_cpu_util(struct backlog_item *item, int cpu)
 
         util = elapsed/1000 - idle/1000;
 
-        printk("CPU #%d: %lu Idle time: %u (%u)\n", cpu, util, idle/1000, elapsed/1000);
+        pr_debug("CPU #%d: %lu Idle time: %u (%u)\n", cpu, util, idle/1000, elapsed/1000);
 
         return util;
 
@@ -767,7 +767,7 @@ static int __init init_pkt_steer_mod(void){
 	int ret;
 	int i;
 	struct backlog_item *item;
-	printk("Inserting Module");
+	pr_info("Inserting Module");
 	
 	for_each_possible_cpu(i){
 		item = &per_cpu(backlog_item, i);
@@ -781,27 +781,25 @@ static int __init init_pkt_steer_mod(void){
 	busy_histo = kmalloc_array(busy_histo_size, sizeof(int), GFP_KERNEL);
 
 	if(busy_histo == NULL){
-		printk(KERN_ERR "No more mem\n");
+		pr_err("No more mem\n");
 		return ret;
 	}
 
-	printk("CPUs: %d %d", cpumask_weight(cpu_possible_mask), busy_histo_size);
-
 	ret = create_flow_table(0);
 	if(ret < 0){
-		printk(KERN_ERR "Failed to set up flow table for IAPS (%d)\n", ret);
+		pr_err("Failed to set up flow table for IAPS (%d)\n", ret);
 		return ret;
 	}
 
 	if(!list_empty(&busy_backlog)){
-		printk(KERN_ERR "Busy Backlog still has entries. Abort.");
+		pr_err("Busy Backlog still has entries. Abort.");
 		create_flow_table(1);
 		return -1;
 	}
 
 	ret = create_proc();
 	if(ret < 0){
-		printk(KERN_ERR "pkt_steer_module could not setup proc (%d)\n", ret);
+		pr_err("pkt_steer_module could not setup proc (%d)\n", ret);
 		create_flow_table(1);
 		return ret;
 	}
@@ -820,7 +818,6 @@ static void __exit exit_pkt_steer_mod(void){
 	int i;
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		printk("CPU %d: %d %d %d %d %d", i, stat.total, stat.assignedToBusy, stat.noBusyAvailable, stat.noBusyAvailableRace, stat.targetIsSelf);
 	}
 
 	remove_proc_entry("pkt_steer_module", NULL);
