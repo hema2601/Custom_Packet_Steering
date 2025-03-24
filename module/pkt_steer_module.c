@@ -427,18 +427,53 @@ done:
 
 }
 
+static void remove_from_idle(int tcpu)
+{
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).idle_list_entry); 
+	
+	if(list->prev != list){
+		list_del_init(list);
+	}
+
+}
+
+static void remove_from_busy(int tcpu)
+{
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).busy_list_entry); 
+	
+	if(list->prev != list){
+		list_del_init(list);
+		curr_busy--;
+	}
+}
+
+static void add_to_busy(int tcpu)
+{
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).busy_list_entry);	
+	if(list->prev == list){
+    	list_add(list, &busy_backlog);
+		curr_busy++;
+	}
+}
+
+static void add_to_idle(int tcpu)
+{
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).idle_list_entry);	
+	if(list->prev == list){
+    	list_add(list, &idle_backlog);
+	}
+}
+
+
 static void this_before(int tcpu){
 
 	unsigned long flags;
-	struct list_head *list = &(per_cpu(backlog_item, tcpu).busy_list_entry);	
-	
     
 	spin_lock_irqsave(&backlog_lock, flags);
-	//printk("Adding to busy list");
-	if(list->prev == list){
-		curr_busy++;
-    	list_add(list, &busy_backlog);
-	}
+	
+	remove_from_idle(tcpu);
+	add_to_busy(tcpu);
+	
 	spin_unlock_irqrestore(&backlog_lock, flags);
    
 }
@@ -446,14 +481,12 @@ static void this_before(int tcpu){
 static void this_after(int tcpu){
 	
 	unsigned long flags;
-	struct backlog_item *item = &per_cpu(backlog_item, tcpu);	
 	
     spin_lock_irqsave(&backlog_lock, flags);
-	//printk("Removing from busy list");
-	if(item->busy_list_entry.prev != &item->busy_list_entry){
-		curr_busy--;
-		list_del_init(&item->busy_list_entry);
-    }
+
+	remove_from_busy(tcpu);
+	add_to_idle(tcpu);
+
     spin_unlock_irqrestore(&backlog_lock, flags);
 
 }
