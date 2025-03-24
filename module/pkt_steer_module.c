@@ -788,14 +788,19 @@ static int __init init_pkt_steer_mod(void){
 		return ret;
 	}
 
+	for (int i = 0; i < busy_histo_size; i++)
+		busy_histo[i] = 0;	
+	
 	ret = create_flow_table(0);
 	if(ret < 0){
+		kfree(busy_histo);
 		pr_err("Failed to set up flow table for IAPS (%d)\n", ret);
 		return ret;
 	}
 
 	if(!list_empty(&busy_backlog)){
 		pr_err("Busy Backlog still has entries. Abort.");
+		kfree(busy_histo);
 		create_flow_table(1);
 		return -1;
 	}
@@ -803,6 +808,7 @@ static int __init init_pkt_steer_mod(void){
 	ret = create_proc();
 	if(ret < 0){
 		pr_err("pkt_steer_module could not setup proc (%d)\n", ret);
+		kfree(busy_histo);
 		create_flow_table(1);
 		return ret;
 	}
