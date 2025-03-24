@@ -50,6 +50,9 @@ struct my_ops_stats{
 	int fromOverloaded;
 	int allBusyOverloaded;
 	int potentialReorder;
+	int noIdle;
+	int noIdleLB;
+	int incorrectIdle;
 };
 
 static int num_curr_cpus = 1;
@@ -257,7 +260,31 @@ static int is_overloaded(int tcpu){
                                : 0;
 }
 
+//Non-negative? Its the value of the idle CPU to be activated
+//Negative? Idle core cannot be activated
 
+
+//[Consideration] should we transition a core from idle to busy here?
+// Pros:
+// Earlier busy/idle distinction
+// Cons:
+// Locks for every steered packet
+// Unclear whether this fuction will be called as part of backup core selection or final core selection
+static int activate_idle(void){
+   struct backlog_item *item;
+
+   //If idle backlog is empty, return -1
+   if(list_empty(&idle_backlog))   return -1;
+
+   //If number of busy cores already equals number of available cores according to lb, return -2
+   if(choose_backup_core == LB && curr_busy >= num_curr_cpus)  return -2;
+
+   //else return idle core id
+   item = list_first_entry(&idle_backlog, struct backlog_item, idle_list_entry); //[DANGER] This should probably be called with a lock
+   return item->cpu;
+}
+
+ 
 static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
 
@@ -273,6 +300,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	u32 tcpu;
 	u32 hash;
 	unsigned long flags;
+	int32_t ret;
 
 	stats = &per_cpu(pkt_steer_stats, this_cpu);
 
@@ -377,11 +405,36 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					stats->assignedToBusy++;
 					tcpu = item->cpu;
 				}else{
+
+		          	//activate idle
+                	if((ret = activate_idle()) < 0){
+                    	if (ret == -1)  stats->noIdle++;
+                    	else if (ret == -2) stats->noIdleLB++;
+                  	}else{
+                    	tcpu = (u32)ret;
+                    	//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
+                    	if(previous_still_busy(tcpu)){
+                        	stats->incorrectIdle++;
+                    	}
+                	}
 					stats->allBusyOverloaded++;
 				}
 
 
 			}else{
+                   //activate idle
+                   if((ret = activate_idle()) < 0){
+                       if (ret == -1)  stats->noIdle++;
+                       else if (ret == -2) stats->noIdleLB++;
+                   }else{
+                       tcpu = (u32)ret;
+                       //For Debug reasons, lets check whether this new core is actuyally "Not Busy"
+                       if(previous_still_busy(tcpu)){
+                           stats->incorrectIdle++;
+                       }
+                   }
+
+ 
 				stats->noBusyAvailable++;
 
 				//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
@@ -639,7 +692,7 @@ static int my_proc_show(struct seq_file *m,void *v){
 
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded, stat.potentialReorder);
+		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded, stat.potentialReorder, stat.incorrectIdle, stat.noIdle, stat.noIdleLB);
 	}
 
 	for(i = 0; i < busy_histo_size; i++)	seq_printf(m, "%08x ", busy_histo[i]);
@@ -814,6 +867,8 @@ static int __init init_pkt_steer_mod(void){
 		INIT_LIST_HEAD(&item->busy_list_entry);
 		INIT_LIST_HEAD(&item->idle_list_entry);
 		item->sd = &per_cpu(softnet_data, i);
+		if (i)
+			list_add_tail(&item->idle_list_entry, &idle_backlog);
 	}
 
 	busy_histo_size = cpumask_weight(cpu_possible_mask) + 1;
