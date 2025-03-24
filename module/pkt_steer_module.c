@@ -21,10 +21,12 @@
 
 DEFINE_SPINLOCK(backlog_lock);
 LIST_HEAD(busy_backlog);
+LIST_HEAD(idle_backlog);
 
 struct backlog_item{
 
 	struct list_head busy_list_entry;
+	struct list_head idle_list_entry;
 	struct softnet_data *sd;
 	int cpu;
 	u64 idle;
@@ -777,6 +779,7 @@ static int __init init_pkt_steer_mod(void){
 
 		item->cpu = i;
 		INIT_LIST_HEAD(&item->busy_list_entry);
+		INIT_LIST_HEAD(&item->idle_list_entry);
 		item->sd = &per_cpu(softnet_data, i);
 	}
 
