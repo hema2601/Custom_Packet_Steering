@@ -24,7 +24,7 @@ LIST_HEAD(busy_backlog);
 
 struct backlog_item{
 
-	struct list_head list;
+	struct list_head busy_list_entry;
 	struct softnet_data *sd;
 	int cpu;
 	u64 idle;
@@ -366,7 +366,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 				struct list_head *next;	
 
 				list_for_each(next, &busy_backlog){
-					item = list_entry(next, struct backlog_item, list);
+					item = list_entry(next, struct backlog_item, busy_list_entry);
 					if (!is_overloaded(item->cpu))	break;
 					else							item = NULL;
 				}
@@ -428,7 +428,7 @@ done:
 static void this_before(int tcpu){
 
 	unsigned long flags;
-	struct list_head *list = &(per_cpu(backlog_item, tcpu).list);	
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).busy_list_entry);	
 	
     
 	spin_lock_irqsave(&backlog_lock, flags);
@@ -448,9 +448,9 @@ static void this_after(int tcpu){
 	
     spin_lock_irqsave(&backlog_lock, flags);
 	//printk("Removing from busy list");
-	if(item->list.prev != &item->list){
+	if(item->busy_list_entry.prev != &item->busy_list_entry){
 		curr_busy--;
-		list_del_init(&item->list);
+		list_del_init(&item->busy_list_entry);
     }
     spin_unlock_irqrestore(&backlog_lock, flags);
 
@@ -776,7 +776,7 @@ static int __init init_pkt_steer_mod(void){
 		item = &per_cpu(backlog_item, i);
 
 		item->cpu = i;
-		INIT_LIST_HEAD(&item->list);
+		INIT_LIST_HEAD(&item->busy_list_entry);
 		item->sd = &per_cpu(softnet_data, i);
 	}
 
