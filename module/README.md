@@ -54,3 +54,7 @@ No feature change compare to 0.1.8, but it runs now on the newer kernel patch (w
 1.0.1
 
 Added risk_reorder parameter and potentialReorder stat. Packets can now be forcably steered away from an overloaded core, even if it risks reordering
+
+1.0.2
+
+Added idle backlog and active idle activation. This messes with other schemes (IAPS+RFS/+RPS), which will need to be fixed.
