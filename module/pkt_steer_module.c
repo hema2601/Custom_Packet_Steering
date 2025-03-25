@@ -260,6 +260,7 @@ static int is_overloaded(int tcpu){
                                : 0;
 }
 
+
 //Non-negative? Its the value of the idle CPU to be activated
 //Negative? Idle core cannot be activated
 
@@ -284,6 +285,58 @@ static int activate_idle(void){
    return item->cpu;
 }
 
+static int backup_core_proposal(int this_cpu, u32 hash, struct net_device *dev, struct sk_buff *skb, u8 *ia)
+{
+		int tcpu;
+
+		//[TODO] Decide backup core
+		switch(choose_backup_core){
+				case CURR:
+						tcpu = this_cpu;
+						break;
+				case RPS:
+						tcpu = (hash % max_cpus) + base_cpu;
+						break;
+				case APP:
+						tcpu = perform_rfs(dev, skb);
+						if(tcpu != -1)
+								break;
+						WARN_ONCE(1, "RFS does not seem to be working, fall back to load balancing");
+						fallthrough;
+				case LB:
+						*ia = 1;
+						tcpu = (hash % num_curr_cpus) + base_cpu;
+				case PREV:
+				default:
+						break;
+		}
+
+		return tcpu;
+
+}
+
+static int backup_core_decision(int tcpu, u8 ia, struct my_ops_stats *stats)
+{
+		int ret;
+
+		if (!ia)
+			return tcpu;
+
+		if((ret = activate_idle()) < 0){
+				if (ret == -1)  stats->noIdle++;
+				else if (ret == -2) stats->noIdleLB++;
+		}else{
+				tcpu = (u32)ret;
+				//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
+				if(previous_still_busy(tcpu)){
+						stats->incorrectIdle++;
+				}
+		}
+
+		return tcpu;
+
+}
+
  
 static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
@@ -300,7 +353,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	u32 tcpu;
 	u32 hash;
 	unsigned long flags;
-	int32_t ret;
+	u8 idle_activate = 0;
 
 	stats = &per_cpu(pkt_steer_stats, this_cpu);
 
@@ -369,26 +422,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 			}
 
-			//[TODO] Decide backup core
-			switch(choose_backup_core){
-				case CURR:
-					tcpu = this_cpu;
-					break;
-				case RPS:
-					tcpu = (hash % max_cpus) + base_cpu;
-					break;
-				case APP:
-					tcpu = perform_rfs(dev, skb);
-					if(tcpu != -1)
-						break;
-					WARN_ONCE(1, "RFS does not seem to be working, fall back to load balancing");
-					fallthrough;
-				case LB:
-					tcpu = (hash % num_curr_cpus) + base_cpu;
-				case PREV:
-				default:
-					break;
-			}
+			tcpu = backup_core_proposal(this_cpu, hash, dev, skb, &idle_activate);
 
 			spin_lock_irqsave(&backlog_lock, flags);
 			if(!list_empty(&busy_backlog)){
@@ -406,34 +440,15 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					tcpu = item->cpu;
 				}else{
 
-		          	//activate idle
-                	if((ret = activate_idle()) < 0){
-                    	if (ret == -1)  stats->noIdle++;
-                    	else if (ret == -2) stats->noIdleLB++;
-                  	}else{
-                    	tcpu = (u32)ret;
-                    	//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
-                    	if(previous_still_busy(tcpu)){
-                        	stats->incorrectIdle++;
-                    	}
-                	}
+					tcpu = backup_core_decision(tcpu, idle_activate, stats);
+
 					stats->allBusyOverloaded++;
 				}
 
 
 			}else{
-                   //activate idle
-                   if((ret = activate_idle()) < 0){
-                       if (ret == -1)  stats->noIdle++;
-                       else if (ret == -2) stats->noIdleLB++;
-                   }else{
-                       tcpu = (u32)ret;
-                       //For Debug reasons, lets check whether this new core is actuyally "Not Busy"
-                       if(previous_still_busy(tcpu)){
-                           stats->incorrectIdle++;
-                       }
-                   }
 
+				tcpu = backup_core_decision(tcpu, idle_activate, stats);
  
 				stats->noBusyAvailable++;
 
