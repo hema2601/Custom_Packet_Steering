@@ -49,7 +49,7 @@ name="BigMsg_GRO_Sep_NonExp"
 #done
 
 echo 1 > /sys/module/pkt_steer_module/parameters/risk_reorder
-exp_name=Custom1
+exp_name=IAPS+RFS
 conn=1
 for((i=1;i<=$conns;i++));
 do
@@ -66,7 +66,7 @@ done
 echo 600 > /sys/module/pkt_steer_module/parameters/threshold_low
 echo 900 > /sys/module/pkt_steer_module/parameters/threshold_low
 
-exp_name=Custom2
+exp_name=IAPS+LB
 conn=1
 for((i=1;i<=$conns;i++));
 do
@@ -82,7 +82,7 @@ done
 echo 200 > /sys/module/pkt_steer_module/parameters/threshold_low
 echo 500 > /sys/module/pkt_steer_module/parameters/threshold_low
 
-exp_name=Custom3
+exp_name=IAPS+RPS
 conn=1
 for((i=1;i<=$conns;i++));
 do
@@ -103,6 +103,6 @@ python3 $current_path/merger.py $2 $3 $exponential
 mkdir $current_path/data/$name
 
 mv $current_path/data/R* $current_path/data/$name
-mv $current_path/data/Custom* $current_path/data/$name
+mv $current_path/data/IAPS* $current_path/data/$name
 mv $current_path/summaries $current_path/data/$name
 
