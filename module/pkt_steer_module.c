@@ -277,8 +277,8 @@ static int is_overloaded(int tcpu){
 static int activate_idle(void){
    struct backlog_item *item;
 
-   //If idle backlog is empty, return -1
-   if(list_empty(&idle_backlog))   return -1;
+   //If idle backlog is empty/the system cannot provide more busy cores, return -1
+   if(list_empty(&idle_backlog) || curr_busy == max_cpus)   return -1;
 
    //If number of busy cores already equals number of available cores according to lb, return -2
    if(choose_backup_core == LB && curr_busy >= num_curr_cpus)  return -2;
