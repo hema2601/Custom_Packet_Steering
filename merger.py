@@ -11,7 +11,7 @@ if len(sys.argv) > 4:
 else:
     base_dir = "."
 #bases = ["RSS", "RPS", "RFS", "Custom"]
-bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "Custom1", "Custom2", "Custom3", "RSS+Custom", "RSS+Custom1", "RSS+Custom2", "RSS+Custom3", "Custom1-0", "Custom1-1", "Custom1-2", "Custom1-3", "Custom2-0", "Custom2-1", "Custom2-2", "Custom2-3"]
+bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "Custom1", "Custom2", "Custom3", "RSS+Custom", "RSS+Custom1", "RSS+Custom2", "RSS+Custom3", "Custom1-0", "Custom1-1", "Custom1-2", "Custom1-3", "Custom2-0", "Custom2-1", "Custom2-2", "Custom2-3", "IAPS+RFS", "IAPS+RPS", "IAPS+LB"]
 directory = []
 
 exp = 1
