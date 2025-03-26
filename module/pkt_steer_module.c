@@ -125,6 +125,9 @@ static int risk_reorder __read_mostly = 0;
 module_param(risk_reorder, int, 0644);
 MODULE_PARM_DESC(risk_reorder, "Toggle whether packets should be steered away from an overloaded core, even if the previous core still has packets from the same connection");
 
+static int deactivate_util_lb __read_mostly = 0;
+module_param(deactivate_util_lb, int, 0644);
+MODULE_PARM_DESC(deactivate_util_lb, "Deactivates the adding and reducing of available cores based on average utilization when using the LB backup core selection");
 
 
 static struct rps_dev_flow_table __rcu *iaps_flow_table;
@@ -780,8 +783,14 @@ static void iaps_load_balancer(struct timer_list *timer){
 
 
     //Skip Calculations, if no load balancing needed
-    if(choose_backup_core != LB)
+    if(choose_backup_core != LB){
         goto rearm;
+	}
+
+	if(deactivate_util_lb){
+		num_curr_cpus = max_cpus;
+		goto rearm;
+	}
 
 
     //Check average utilization
