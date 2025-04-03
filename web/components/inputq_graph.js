@@ -11,7 +11,7 @@ var InputQData = {
 		    ],
 			 "repeat":["InputQ Length", "Dequeue per IPI", "Dropped"],
 			  "spec":{
-			   "mark": "bar",
+			   "mark": {"type":"bar","tooltip":true},
 			    "encoding": {
 				   "x": {"field": "Conns", "type": "ordinal", "sort":[]},
 				      "xOffset": {"field": "Exp",},

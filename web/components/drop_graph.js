@@ -38,7 +38,7 @@ var Drops = {
 			{"calculate": "(datum.dropped + datum.RX)", "as": "sum"},
 			{"calculate": "datum.dropped / datum.sum", "as": "percentage"}
 		],
-		"mark": "bar",
+		"mark": {"type":"bar","tooltip":true},
 		"encoding": {
 			"x": {
 				"field": "Conns",

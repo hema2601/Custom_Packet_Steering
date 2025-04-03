@@ -9,7 +9,7 @@ var perf_graph = {
 	"transform": [
 		{"fold": ["etc", "mm", "skb", "netdev", "data_copy", "tcp/ip", "sched", "lock"]}
 	],
-	"mark": "bar",
+	"mark": {"type":"bar","tooltip":true},
 	"encoding": {
 		"row": {"field":"Type", "type":"nominal"},
 		"column": {"field": "Exp",  "type": "nominal"},
