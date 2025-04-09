@@ -285,21 +285,21 @@ then
 #		echo "TYPE	APP" >> $current_path/data/$exp_name/perf.json 
 #		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_app.json >> $current_path/data/$exp_name/perf.json
 ##	fi
-	if test -f perf_stat_irq.json
+	if test -f $current_path/perf_stat_irq.json
 	then 
 		echo "TYPE	IRQ" >> $current_path/data/$exp_name/perf_stat.json 
 		cat $current_path/perf_stat_irq.json >> $current_path/data/$exp_name/perf_stat.json
 		rm $current_path/perf_stat_irq.json
 	fi
 
-	if test -f perf_stat_pp.json
+	if test -f $current_path/perf_stat_pp.json
 	then 
 		echo "TYPE	PP" >> $current_path/data/$exp_name/perf_stat.json 
 		cat $current_path/perf_stat_pp.json >> $current_path/data/$exp_name/perf_stat.json
 		rm $current_path/perf_stat_pp.json
 	fi
 
-	if test -f perf_stat_app.json
+	if test -f $current_path/perf_stat_app.json
 	then 
 		echo "TYPE	APP" >> $current_path/data/$exp_name/perf_stat.json 
 		cat $current_path/perf_stat_app.json >> $current_path/data/$exp_name/perf_stat.json

@@ -46,3 +46,5 @@ if test -f after_pkt_steer.txt; then
     rm after_pkt_steer.txt
     rm after_busy_histo.txt 
 fi
+
+rm tmp.txt
