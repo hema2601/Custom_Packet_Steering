@@ -983,6 +983,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("1.0.2" " " "20250325");
+MODULE_VERSION("1.0.3" " " "20250409");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 

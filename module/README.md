@@ -58,3 +58,7 @@ Added risk_reorder parameter and potentialReorder stat. Packets can now be forca
 1.0.2
 
 Added idle backlog and active idle activation. This messes with other schemes (IAPS+RFS/+RPS), which will need to be fixed.
+
+1.0.3
+
+Fixed some stability problems and updated some outdated defaults. The idle backlog is now fairly stable. IAPS+RPS was fixed, IAPS+RFS still does not work. (Consider simply removing?)
