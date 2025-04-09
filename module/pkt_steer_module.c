@@ -253,6 +253,13 @@ static int previous_still_busy(int tcpu){
 
 }
 
+static int iaps_cpu(int tcpu)
+{
+
+	return ((tcpu >= base_cpu) && (tcpu < (base_cpu + max_cpus)));
+
+}
+
 static int is_overloaded(int tcpu){
 
     //[TODO] Decide whether input queue length alone is enough, or whether CPU util should be considered as well
@@ -520,6 +527,8 @@ static void remove_from_busy(int tcpu)
 
 static void add_to_busy(int tcpu)
 {
+	if(!iaps_cpu(tcpu))	return;
+
 	struct list_head *list = &(per_cpu(backlog_item, tcpu).busy_list_entry);	
 	if(list->prev == list){
     	list_add(list, &busy_backlog);
@@ -529,6 +538,8 @@ static void add_to_busy(int tcpu)
 
 static void add_to_idle(int tcpu)
 {
+	if(!iaps_cpu(tcpu))	return;
+
 	struct list_head *list = &(per_cpu(backlog_item, tcpu).idle_list_entry);	
 	if(list->prev == list){
     	list_add(list, &idle_backlog);
