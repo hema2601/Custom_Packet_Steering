@@ -113,7 +113,7 @@ static unsigned long threshold_low __read_mostly = 200;
 module_param(threshold_low, ulong, 0644);
 MODULE_PARM_DESC(threshold_low, "Define the lower CPU utilization threshold at which IAPS scales down (if 20%, then give 200)");
 
-static int iq_thresh __read_mostly = 100;
+static int iq_thresh __read_mostly = 10;
 module_param(iq_thresh, int, 0644);
 MODULE_PARM_DESC(iq_thresh, "Define the limit of packets in the input queue after which a core will be considered overloaded");
 
