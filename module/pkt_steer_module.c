@@ -55,12 +55,27 @@ struct my_ops_stats{
 	int incorrectIdle;
 };
 
+DEFINE_SPINLOCK(lat_lock);
+struct latency_stats{
+	ktime_t min;
+	ktime_t max;
+	int64_t count;
+};
+
+static struct latency_stats lat_stats;
+
+#define LAT_HISTO_SIZE 20
+static const int lat_gran = 50;
+static unsigned long long lat_histo[LAT_HISTO_SIZE];
+
 static int num_curr_cpus = 1;
 
 static int curr_busy = 0;
 
 static int *busy_histo;
 static int busy_histo_size;
+
+
 
 DEFINE_PER_CPU(struct my_ops_stats, pkt_steer_stats);
 
@@ -128,6 +143,38 @@ MODULE_PARM_DESC(risk_reorder, "Toggle whether packets should be steered away fr
 static int deactivate_util_lb __read_mostly = 0;
 module_param(deactivate_util_lb, int, 0644);
 MODULE_PARM_DESC(deactivate_util_lb, "Deactivates the adding and reducing of available cores based on average utilization when using the LB backup core selection");
+
+static int latency_measures __read_mostly = 0;
+
+static int latency_measures_set(const char *val, const struct kernel_param *kp){
+	int *param = kp->arg;
+
+	int ret = param_set_int(val, kp);
+
+	if (!ret) {
+		if (*param != 0) {
+			//activate latency measures, reset counts
+			lat_stats.min = LONG_MAX;
+			lat_stats.max = 0;
+			lat_stats.count = 0;
+
+			for(int i = 0; i < LAT_HISTO_SIZE; i++)	lat_histo[i] = 0;
+
+		} else {
+			printk("Latency Stats: Min: %lld, Max: %lld, Count: %lld\n", lat_stats.min, lat_stats.max, lat_stats.count);
+			for(int i = 0; i < LAT_HISTO_SIZE; i++)	printk("[%dns, %dns) %lld", i * lat_gran, (i+1) * lat_gran, lat_histo[i]);
+		}
+	}
+
+	return ret;
+}
+
+static const struct kernel_param_ops latency_measures_ops = {
+	.set = latency_measures_set,
+	.get = param_get_int,
+};
+
+module_param_cb(latency_measures, &latency_measures_ops, &latency_measures, 0644);
 
 
 static struct rps_dev_flow_table __rcu *iaps_flow_table;
@@ -694,13 +741,43 @@ static void interface_mark_as_idle(int tcpu){
 	if(custom_toggle == 1) this_after(tcpu);
 		
 }
+
+static void enter_latency_data(ktime_t lat, struct latency_stats *stats, long long int *histo, int size, int gran){
+		if(lat > stats->max)	stats->max = lat;
+		if(lat < stats->min)	stats->min = lat;
+
+		stats->count++;
+
+		idx = lat / gran;
+
+		histo[(idx < size)?idx:size-1]++;
+
+}
+
 static int interface_get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
 
-	if(custom_toggle == 1)	return this_get_cpu(dev, skb, rflowp);
-		
-	else 				return get_rps_cpu_copy(dev, skb, rflowp);
+	int ret;
+	ktime_t lat;
+	int idx;
 
+	if(latency_measures)
+		lat = ktime_get();
+
+	if(custom_toggle == 1)	ret = this_get_cpu(dev, skb, rflowp);
+		
+	else 				ret = get_rps_cpu_copy(dev, skb, rflowp);
+
+	if(latency_measures){
+		lat = ktime_get() - lat;
+
+		spin_lock(&lat_lock);
+
+		enter_latency_data(lat, &lat_stats, lat_histo, LAT_HISTO_SIZE, lat_gran);
+
+		spin_unlock(&lat_lock);
+	}
+	return ret;
 
 }
 
