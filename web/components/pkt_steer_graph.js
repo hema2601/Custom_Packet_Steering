@@ -20,7 +20,7 @@ var PktSteer = {
 			{"filter": "datum.Total != 0"},
 			{"filter": "datum.CPU >= 0 && datum.CPU <= 7"},
 			{"calculate": "datum.AssignedToBusy / datum.Total ", "as": "ToBusy"},
-			{"calculate": "datum.NoBusyAvailable / datum.Total ", "as": "NotAvail"},
+			{"calculate": "(datum.NoBusyAvailable + datum.AllOverloaded) / datum.Total ", "as": "NotAvail"},
 			{
 				"calculate": "(datum.Total - datum.PrevInvalid - datum.PrevIdle - datum.FromOverloaded) / datum.Total ",
 				"as": "PreviousStillBusy"
