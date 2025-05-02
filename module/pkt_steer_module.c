@@ -743,6 +743,8 @@ static void interface_mark_as_idle(int tcpu){
 }
 
 static void enter_latency_data(ktime_t lat, struct latency_stats *stats, long long int *histo, int size, int gran){
+		int idx;
+
 		if(lat > stats->max)	stats->max = lat;
 		if(lat < stats->min)	stats->min = lat;
 
@@ -759,7 +761,6 @@ static int interface_get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 
 	int ret;
 	ktime_t lat;
-	int idx;
 
 	if(latency_measures)
 		lat = ktime_get();
@@ -802,6 +803,12 @@ static int my_proc_show(struct seq_file *m,void *v){
 	}
 
 	for(i = 0; i < busy_histo_size; i++)	seq_printf(m, "%08x ", busy_histo[i]);
+
+	seq_printf(m, "\n");
+
+	seq_printf(m, "%08x ", lat_gran);
+
+	for(i = 0; i < LAT_HISTO_SIZE; i++)	seq_printf(m, "%08llx ", lat_histo[i]);
 
 	seq_printf(m, "\n");
 	
