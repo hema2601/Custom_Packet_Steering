@@ -360,6 +360,12 @@ class PKT_STEERGen(JsonGenerator):
                 elem["IncorrectIdle"] = int(parts[13],16) - elem["IncorrectIdle"]
                 elem["NoIdle"] = int(parts[14],16) - elem["NoIdle"]
                 elem["NoIdleLB"] = int(parts[15],16) - elem["NoIdleLB"]
+                elem["BC_PB"] = int(parts[16],16) - elem["BC_PB"]
+                elem["BC_PO"] = int(parts[17],16) - elem["BC_PO"]
+                elem["BC_PI"] = int(parts[18],16) - elem["BC_PI"]
+                elem["BC_OB"] = int(parts[19],16) - elem["BC_OB"]
+                elem["BC_OO"] = int(parts[20],16) - elem["BC_OO"]
+                elem["BC_OI"] = int(parts[21],16) - elem["BC_OI"]
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
@@ -378,6 +384,12 @@ class PKT_STEERGen(JsonGenerator):
                 elem["IncorrectIdle"] = int(parts[13],16)
                 elem["NoIdle"] = int(parts[14],16)
                 elem["NoIdleLB"] = int(parts[15],16)
+                elem["BC_PB"] = int(parts[16],16)
+                elem["BC_PO"] = int(parts[17],16)
+                elem["BC_PI"] = int(parts[18],16)
+                elem["BC_OB"] = int(parts[19],16)
+                elem["BC_OO"] = int(parts[20],16)
+                elem["BC_OI"] = int(parts[21],16)
                 self.json_dict.append(elem)
 
 class PROC_STATGen(JsonGenerator):

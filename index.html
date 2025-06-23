@@ -22,6 +22,7 @@
 		<script src="web/components/busy_histo_graph.js"></script>
 		<script src="web/components/rx_lat_graph.js"></script>
 		<script src="web/components/netstat_graph.js"></script>
+		<script src="web/components/backup_choice_graph.js"></script>
 
 		<!-- Import Vega 5 & Vega-Lite 4 (does not have to be from CDN) -->
 
@@ -84,6 +85,10 @@
 		<div class="content">
 			<div id="PktSteer" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
+		<button type="button" class="collapsible">Backup Choice Stats Graph</button>
+		<div class="content">
+			<div id="BC_Stats" style="overflow-x:scroll;" class="col-md-12"></div>
+		</div>
 		<button type="button" class="collapsible">Netstat Graph</button>
 		<div class="content">
 			<div id="Netstat" style="overflow-x:scroll;" class="col-md-12"></div>
@@ -144,6 +149,10 @@
 		<button type="button" class="collapsible">Packet Steering Stats Graph</button>
 		<div class="content">
 			<div id="PktSteer2" style="overflow-x:scroll;" class="col-md-12"></div>
+		</div>
+		<button type="button" class="collapsible">Backup Choice Stats Graph</button>
+		<div class="content">
+			<div id="BC_Stats2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Netstat Graph</button>
 		<div class="content">
@@ -252,7 +261,7 @@ function loadAllGraphs(path, postfix){
 	fetchJSONData(path.concat("summary_iperf_lat.json"), ['#RX_Lat'.concat(postfix)], [RX_Lat_histo])
 	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'.concat(postfix)], [Drops])
 	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI'.concat(postfix), '#PpIPI_err'.concat(postfix),'#InputQData'.concat(postfix)], [PpIPI, PpIPI_err, InputQData])
-	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'.concat(postfix)], [PktSteer])
+	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'.concat(postfix), '#BC_Stats'.concat(postfix)], [PktSteer, backup_choice])
 	fetchJSONData(path.concat("summary_proc_stat.json"), ['#CPUUtil'.concat(postfix)], [CPUUtil])
 	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'.concat(postfix)], [perf_graph])
 	fetchJSONData(path.concat("summary_perf_stat.json"), ['#CacheMiss'.concat(postfix), '#IPC'.concat(postfix)], [cache_miss, ipc])

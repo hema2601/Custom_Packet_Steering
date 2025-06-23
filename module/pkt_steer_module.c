@@ -19,6 +19,13 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#define BC_PB 0		//Backup Choice: Previous Busy
+#define BC_PO 1		//Backup Choice: Previous Overloaded
+#define BC_PI 2		//Backup Choice: Previous Idle
+#define BC_OB 3		//Backup Choice: Other Busy
+#define BC_OO 4		//Backup Choice: Other Overloaded
+#define BC_OI 5		//Backup Choice: Other Idle
+
 DEFINE_SPINLOCK(backlog_lock);
 LIST_HEAD(busy_backlog);
 LIST_HEAD(idle_backlog);
@@ -53,6 +60,7 @@ struct my_ops_stats{
 	int noIdle;
 	int noIdleLB;
 	int incorrectIdle;
+	int backupChoice[6];
 };
 
 DEFINE_SPINLOCK(lat_lock);
@@ -143,6 +151,10 @@ MODULE_PARM_DESC(risk_reorder, "Toggle whether packets should be steered away fr
 static int deactivate_util_lb __read_mostly = 0;
 module_param(deactivate_util_lb, int, 0644);
 MODULE_PARM_DESC(deactivate_util_lb, "Deactivates the adding and reducing of available cores based on average utilization when using the LB backup core selection");
+
+static int check_backup_choice __read_mostly = 0;
+module_param(check_backup_choice, int, 0644);
+MODULE_PARM_DESC(check_backup_choice, "When turned on, every core chosen as backup will be checked on whether they are busy, overloaded, or idle");
 
 static int latency_measures __read_mostly = 0;
 
@@ -394,6 +406,12 @@ static int backup_core_decision(int tcpu, u8 ia, struct my_ops_stats *stats)
 
 }
 
+static void backup_choice_check(int tcpu, int prev, struct my_ops_stats *stats)
+{
+	if (is_overloaded(tcpu)) 	stats->backupChoice[(tcpu == prev) ? BC_PO : BC_OO]++;
+	else if (is_busy(tcpu)) 	stats->backupChoice[(tcpu == prev) ? BC_PB : BC_OB]++;
+	else 						stats->backupChoice[(tcpu == prev) ? BC_PI : BC_OI]++;
+}
  
 static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
@@ -500,6 +518,11 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 					tcpu = backup_core_decision(tcpu, idle_activate, stats);
 
 					stats->allBusyOverloaded++;
+			
+					if(check_backup_choice){
+						backup_choice_check(tcpu, prev_cpu, stats);
+					}
+		
 				}
 
 
@@ -508,13 +531,10 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 				tcpu = backup_core_decision(tcpu, idle_activate, stats);
  
 				stats->noBusyAvailable++;
-
-				//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
-				if(previous_still_busy(tcpu)){
-					pr_debug("Actually Steered to Busy Core!!\n");
+				
+				if(check_backup_choice){
+					backup_choice_check(tcpu, prev_cpu, stats);
 				}
-	
-
 
 			}
 			spin_unlock_irqrestore(&backlog_lock, flags);
@@ -799,7 +819,7 @@ static int my_proc_show(struct seq_file *m,void *v){
 
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded, stat.potentialReorder, stat.incorrectIdle, stat.noIdle, stat.noIdleLB);
+		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded, stat.potentialReorder, stat.incorrectIdle, stat.noIdle, stat.noIdleLB, stat.backupChoice[BC_PB], stat.backupChoice[BC_PO], stat.backupChoice[BC_PI], stat.backupChoice[BC_OB], stat.backupChoice[BC_OO], stat.backupChoice[BC_OI]);
 	}
 
 	for(i = 0; i < busy_histo_size; i++)	seq_printf(m, "%08x ", busy_histo[i]);
