@@ -21,6 +21,7 @@
 		<script src="web/components/ipc_graph.js"></script>
 		<script src="web/components/busy_histo_graph.js"></script>
 		<script src="web/components/rx_lat_graph.js"></script>
+		<script src="web/components/netstat_graph.js"></script>
 
 		<!-- Import Vega 5 & Vega-Lite 4 (does not have to be from CDN) -->
 
@@ -83,6 +84,10 @@
 		<div class="content">
 			<div id="PktSteer" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
+		<button type="button" class="collapsible">Netstat Graph</button>
+		<div class="content">
+			<div id="Netstat" style="overflow-x:scroll;" class="col-md-12"></div>
+		</div>
 		<button type="button" class="collapsible">Cpu Utilization Graph</button>
 		<div class="content">
 			<div id="CPUUtil" style="overflow-x:scroll;" class="col-md-12"></div>
@@ -139,6 +144,10 @@
 		<button type="button" class="collapsible">Packet Steering Stats Graph</button>
 		<div class="content">
 			<div id="PktSteer2" style="overflow-x:scroll;" class="col-md-12"></div>
+		</div>
+		<button type="button" class="collapsible">Netstat Graph</button>
+		<div class="content">
+			<div id="Netstat2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Cpu Utilization Graph</button>
 		<div class="content">
@@ -248,6 +257,7 @@ function loadAllGraphs(path, postfix){
 	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'.concat(postfix)], [perf_graph])
 	fetchJSONData(path.concat("summary_perf_stat.json"), ['#CacheMiss'.concat(postfix), '#IPC'.concat(postfix)], [cache_miss, ipc])
 	fetchJSONData(path.concat("summary_busy_histo.json"), ['#Busy_Histo'.concat(postfix)], [Busy_Histo])
+	fetchJSONData(path.concat("summary_netstat.json"), ['#Netstat'.concat(postfix)], [netstat])
 
 }
 var coll = document.getElementsByClassName("collapsible");

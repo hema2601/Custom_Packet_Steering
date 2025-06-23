@@ -17,7 +17,8 @@ class Filetype(Enum):
     BUSY_HISTO      = 10
     IPERF_LAT       = 11
     PKT_LAT_HISTO   = 12
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO', 'IPERF_LAT', 'PKT_LAT_HISTO'])
+    NETSTAT         = 13
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO', 'IPERF_LAT', 'PKT_LAT_HISTO', 'NETSTAT'])
 
 
 class JsonGenerator:
@@ -723,6 +724,69 @@ class PKT_LAT_HISTOGen(JsonGenerator):
             line_count += 1
 
 
+class NETSTATGen(JsonGenerator):
+
+    def generate_json(self):
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+
+        tcp_ext_dict = dict()
+
+        keys = ["TCPOFOQueue", "TCPHPHits", "TCPOFODrop"]
+
+        elem = dict()
+
+        while True:
+            l1 = self.f.readline()
+            l2 = self.f.readline()
+
+            if not l1 or not l2:
+                break
+
+            p1 = [x for x in l1.split(' ') if x.strip()]
+            p2 = [x for x in l2.split(' ') if x.strip()]
+
+            if p1[0] == p2[0] and p1[0] == "TcpExt:":
+                for idx in range(1, len(p1)):
+                    tcp_ext_dict[p1[idx]] = int(p2[idx])
+
+                #for k in tcp_ext_dict.keys():
+                #    print(k, tcp_ext_dict[k])
+
+                for k in keys:
+                    if k in elem.keys():
+                        elem[k] = tcp_ext_dict[k] - elem[k]
+                    else:
+                        elem[k] = tcp_ext_dict[k]
+
+        #print(elem)
+
+        self.json_dict.append(elem)
+        
+
+#        for line in self.f:
+#            parts = [x for x in line.split(' ') if x.strip()]
+#
+#            gran = int(parts[0], 16)
+#
+#            idx = 0
+#            for part in parts[1:]:
+#                c = int(part, 16)
+#                if line_count == 0:
+#                    elem = dict()
+#                    elem["start"] = idx * gran
+#                    elem["end"] = (idx + 1) * gran
+#                    elem["count"] = c
+#                    self.json_dict.append(elem)
+#                else:
+#                    elem = next((item for item in self.json_dict if item["start"] == idx * gran), None)
+#                    elem["count"] = c - elem["count"]
+#                idx += 1
+#
+#            line_count += 1
 argc = len(sys.argv)
 
 

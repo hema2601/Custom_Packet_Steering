@@ -14,5 +14,6 @@ if test -f /proc/pkt_steer_module; then
 	tail -n 2 /proc/pkt_steer_module | head -n 1 > before_busy_histo.txt
 	tail -n 1 /proc/pkt_steer_module > before_pkt_lat_histo.txt
 fi
+cat /proc/net/netstat > before_netstat.txt
 
 

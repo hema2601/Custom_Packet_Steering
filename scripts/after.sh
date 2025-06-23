@@ -16,6 +16,7 @@ if test -f /proc/pkt_steer_module; then
     tail -n 2 /proc/pkt_steer_module | head -n 1 > after_busy_histo.txt
     tail -n 1 /proc/pkt_steer_module > after_pkt_lat_histo.txt
 fi
+cat /proc/net/netstat > after_netstat.txt
 
 cat before_pkt.txt after_pkt.txt > $current_path/data/$name/packet_cnt.json
 cat before_soft_irq.txt after_soft_irq.txt > $current_path/data/$name/softirq.json
@@ -27,6 +28,7 @@ if test -f /proc/pkt_steer_module; then
     cat before_busy_histo.txt after_busy_histo.txt > $current_path/data/$name/busy_histo.json
     cat before_pkt_lat_histo.txt after_pkt_lat_histo.txt > $current_path/data/$name/pkt_lat_histo.json
 fi
+cat before_netstat.txt after_netstat.txt > $current_path/data/$name/netstat.json
 
 cat $current_path/iperf.json > $current_path/data/$name/iperf_lat.json
 
@@ -51,4 +53,6 @@ if test -f after_pkt_steer.txt; then
 	rm after_pkt_lat_histo.txt
 fi
 
+rm before_netstat.txt
+rm after_netstat.txt
 rm tmp.txt
