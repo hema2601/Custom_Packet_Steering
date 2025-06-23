@@ -1,0 +1,434 @@
+[
+{
+"Core": 0,
+"Type": "TX",
+"Before": 600,
+"After": 602
+},
+{
+"Core": 1,
+"Type": "TX",
+"Before": 593,
+"After": 598
+},
+{
+"Core": 2,
+"Type": "TX",
+"Before": 663,
+"After": 663
+},
+{
+"Core": 3,
+"Type": "TX",
+"Before": 1296,
+"After": 1296
+},
+{
+"Core": 4,
+"Type": "TX",
+"Before": 118,
+"After": 118
+},
+{
+"Core": 5,
+"Type": "TX",
+"Before": 122,
+"After": 124
+},
+{
+"Core": 6,
+"Type": "TX",
+"Before": 130,
+"After": 130
+},
+{
+"Core": 7,
+"Type": "TX",
+"Before": 120,
+"After": 120
+},
+{
+"Core": 8,
+"Type": "TX",
+"Before": 2,
+"After": 2
+},
+{
+"Core": 9,
+"Type": "TX",
+"Before": 2,
+"After": 2
+},
+{
+"Core": 10,
+"Type": "TX",
+"Before": 1,
+"After": 1
+},
+{
+"Core": 11,
+"Type": "TX",
+"Before": 3,
+"After": 3
+},
+{
+"Core": 12,
+"Type": "TX",
+"Before": 2,
+"After": 2
+},
+{
+"Core": 13,
+"Type": "TX",
+"Before": 0,
+"After": 0
+},
+{
+"Core": 14,
+"Type": "TX",
+"Before": 1,
+"After": 1
+},
+{
+"Core": 15,
+"Type": "TX",
+"Before": 3,
+"After": 3
+},
+{
+"Core": 16,
+"Type": "TX",
+"Before": 1,
+"After": 1
+},
+{
+"Core": 17,
+"Type": "TX",
+"Before": 1,
+"After": 1
+},
+{
+"Core": 18,
+"Type": "TX",
+"Before": 0,
+"After": 0
+},
+{
+"Core": 19,
+"Type": "TX",
+"Before": 2,
+"After": 2
+},
+{
+"Core": 20,
+"Type": "TX",
+"Before": 5,
+"After": 5
+},
+{
+"Core": 21,
+"Type": "TX",
+"Before": 0,
+"After": 0
+},
+{
+"Core": 22,
+"Type": "TX",
+"Before": 3,
+"After": 3
+},
+{
+"Core": 23,
+"Type": "TX",
+"Before": 2,
+"After": 2
+},
+{
+"Core": 24,
+"Type": "TX",
+"Before": 4,
+"After": 4
+},
+{
+"Core": 25,
+"Type": "TX",
+"Before": 1,
+"After": 1
+},
+{
+"Core": 26,
+"Type": "TX",
+"Before": 3,
+"After": 3
+},
+{
+"Core": 27,
+"Type": "TX",
+"Before": 0,
+"After": 0
+},
+{
+"Core": 28,
+"Type": "TX",
+"Before": 4,
+"After": 4
+},
+{
+"Core": 29,
+"Type": "TX",
+"Before": 2,
+"After": 2
+},
+{
+"Core": 30,
+"Type": "TX",
+"Before": 0,
+"After": 0
+},
+{
+"Core": 31,
+"Type": "TX",
+"Before": 3,
+"After": 3
+},
+{
+"Core": 32,
+"Type": "TX",
+"Before": 2,
+"After": 2
+},
+{
+"Core": 33,
+"Type": "TX",
+"Before": 3,
+"After": 3
+},
+{
+"Core": 34,
+"Type": "TX",
+"Before": 1,
+"After": 1
+},
+{
+"Core": 35,
+"Type": "TX",
+"Before": 1,
+"After": 1
+},
+{
+"Core": 0,
+"Type": "RX",
+"Before": 404336105,
+"After": 404518311
+},
+{
+"Core": 1,
+"Type": "RX",
+"Before": 256097490,
+"After": 256273293
+},
+{
+"Core": 2,
+"Type": "RX",
+"Before": 267703256,
+"After": 267887368
+},
+{
+"Core": 3,
+"Type": "RX",
+"Before": 264691906,
+"After": 264882820
+},
+{
+"Core": 4,
+"Type": "RX",
+"Before": 81432571,
+"After": 81432571
+},
+{
+"Core": 5,
+"Type": "RX",
+"Before": 58234152,
+"After": 58234152
+},
+{
+"Core": 6,
+"Type": "RX",
+"Before": 77010542,
+"After": 77010542
+},
+{
+"Core": 7,
+"Type": "RX",
+"Before": 48755011,
+"After": 48755011
+},
+{
+"Core": 8,
+"Type": "RX",
+"Before": 1321,
+"After": 1321
+},
+{
+"Core": 9,
+"Type": "RX",
+"Before": 629,
+"After": 629
+},
+{
+"Core": 10,
+"Type": "RX",
+"Before": 433,
+"After": 433
+},
+{
+"Core": 11,
+"Type": "RX",
+"Before": 364,
+"After": 364
+},
+{
+"Core": 12,
+"Type": "RX",
+"Before": 278,
+"After": 278
+},
+{
+"Core": 13,
+"Type": "RX",
+"Before": 233,
+"After": 233
+},
+{
+"Core": 14,
+"Type": "RX",
+"Before": 1270,
+"After": 1271
+},
+{
+"Core": 15,
+"Type": "RX",
+"Before": 1408,
+"After": 1409
+},
+{
+"Core": 16,
+"Type": "RX",
+"Before": 553,
+"After": 553
+},
+{
+"Core": 17,
+"Type": "RX",
+"Before": 321,
+"After": 321
+},
+{
+"Core": 18,
+"Type": "RX",
+"Before": 412,
+"After": 412
+},
+{
+"Core": 19,
+"Type": "RX",
+"Before": 459,
+"After": 459
+},
+{
+"Core": 20,
+"Type": "RX",
+"Before": 740,
+"After": 740
+},
+{
+"Core": 21,
+"Type": "RX",
+"Before": 508,
+"After": 508
+},
+{
+"Core": 22,
+"Type": "RX",
+"Before": 732,
+"After": 732
+},
+{
+"Core": 23,
+"Type": "RX",
+"Before": 466,
+"After": 466
+},
+{
+"Core": 24,
+"Type": "RX",
+"Before": 1395,
+"After": 1395
+},
+{
+"Core": 25,
+"Type": "RX",
+"Before": 441,
+"After": 441
+},
+{
+"Core": 26,
+"Type": "RX",
+"Before": 479,
+"After": 479
+},
+{
+"Core": 27,
+"Type": "RX",
+"Before": 386,
+"After": 386
+},
+{
+"Core": 28,
+"Type": "RX",
+"Before": 232,
+"After": 233
+},
+{
+"Core": 29,
+"Type": "RX",
+"Before": 355,
+"After": 355
+},
+{
+"Core": 30,
+"Type": "RX",
+"Before": 282,
+"After": 282
+},
+{
+"Core": 31,
+"Type": "RX",
+"Before": 321,
+"After": 321
+},
+{
+"Core": 32,
+"Type": "RX",
+"Before": 1790,
+"After": 1793
+},
+{
+"Core": 33,
+"Type": "RX",
+"Before": 2477,
+"After": 2483
+},
+{
+"Core": 34,
+"Type": "RX",
+"Before": 933,
+"After": 933
+},
+{
+"Core": 35,
+"Type": "RX",
+"Before": 639,
+"After": 639
+}
+]

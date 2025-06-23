@@ -1,0 +1,35 @@
+{
+		"$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+		"description": "A simple bar chart with embedded data.",
+		"width":300,
+		"height":300,
+		"data": {
+				"name":"myData"
+		},
+		"transform":[
+				{"calculate":"datum.instructions/datum.cycles", "as":"IPC"},
+				{"calculate":"datum['LLC-load-misses']/datum['LLC-loads']", "as":"CacheMisses"},
+				{"calculate": "(datum.Exp == 'IAPS-Full-Overload-40') ? 'IAPS':datum.Exp", "as":"Scheme"}
+		],
+		"mark": {"type" : "bar", "tooltip":true},
+        "encoding": {
+
+                "facet": {
+                        "field": "Type",
+                        "type": "ordinal",
+                        "columns": 2,
+                        "header":{
+                            "labelFontSize":15, 
+                            "titleFontSize":15
+                        },
+                        "sort": ["FULL", "APP", "IRQ", "PP"]
+                },
+				"x": {"field": "Conns", "type": "ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":45}},
+				"xOffset":{"field":"Scheme", "type":"nominal"},
+				"y": {"aggregate":"mean","field": "CacheMisses", "type": "quantitative", "title":"Mean of LLC Misses", "axis":{"labelFontSize":15, "titleFontSize":15, "format":"%"}},
+				"color": {"field": "Scheme", "type": "nominal", "legend": {"labelFontSize":15, "titleFontSize":15}}
+		},
+  "resolve": {"axis": {"x": "independent", "y": "independent"}}
+}
+
+

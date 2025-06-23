@@ -1,0 +1,20 @@
+[
+{
+"Queue": -1,
+"Type": "dropped",
+"Before": 127919288,
+"After": 128328568
+},
+{
+"Queue": 0,
+"Type": "TX",
+"Before": 1194976158,
+"After": 1197522328
+},
+{
+"Queue": 0,
+"Type": "RX",
+"Before": 21696695186,
+"After": 21734660952
+}
+]
