@@ -160,8 +160,10 @@ then
 	type="IAPS"
 else
 	echo "Disable Custom"
-	echo 0 > /sys/module/pkt_steer_module/parameters/custom_toggle
-
+	if test -f /sys/module/pkt_steer_module/parameters/custom_toggle
+	then 
+		echo 0 > /sys/module/pkt_steer_module/parameters/custom_toggle
+	fi
 	#rmmod pkt_steer_module
 	#if [[ "$rfs" == "0" ]]
 	#then
