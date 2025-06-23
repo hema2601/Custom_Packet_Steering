@@ -191,6 +191,7 @@ class IPERFGen(JsonGenerator):
         conns = list()
         #histo_stats = dict()
     
+        tmp_list = list()
 
         for conn in tmp_dict["start"]["connected"]:
             elem = dict()
@@ -218,7 +219,32 @@ class IPERFGen(JsonGenerator):
 
                         break
 
-                self.json_dict.append(elem)
+                tmp_list.append(elem)
+
+        # Determine ConnPerCore
+
+        napi_ids = set()
+        for elem in tmp_list:
+            napi_ids.add(elem["NAPI_ID"])
+
+        napi_dict = dict()
+        for elem in napi_ids:
+            napi_dict[elem] = set()
+
+        for elem in tmp_list:
+            napi_dict[elem["NAPI_ID"]].add(elem["Socket"])
+
+        id_dict = dict()
+
+        for napi in napi_dict.keys():
+            count = len(napi_dict[napi])
+            for s in napi_dict[napi]:
+                id_dict[s] = count
+
+        # Add into json_dict
+        for elem in tmp_list:
+            elem["ConnPerCore"] = id_dict[elem["Socket"]]
+            self.json_dict.append(elem)
 
       #          histo = next((end_stream for end_stream in tmp_dict["end"]["streams"] if end_stream['receiver']['socket'] == stream['socket']), None)
       #          
