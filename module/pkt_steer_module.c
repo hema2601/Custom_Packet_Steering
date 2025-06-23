@@ -310,7 +310,7 @@ static int previous_invalid(int tcpu){
     return tcpu >= nr_cpu_ids || !cpu_online(tcpu);
 }
 
-static int previous_still_busy(int tcpu){
+static int is_busy(int tcpu){
     struct sk_buff_head *target_input_queue = &(per_cpu(softnet_data, tcpu).input_pkt_queue);
     unsigned long *target_NAPI_state = &per_cpu(softnet_data, tcpu).backlog.state;
 
@@ -407,9 +407,9 @@ static int backup_core_decision(int tcpu, u8 ia, struct my_ops_stats *stats)
 		}else{
 				tcpu = (u32)ret;
 				//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
-				if(previous_still_busy(tcpu)){
-						stats->incorrectIdle++;
-				}
+				//if(is_busy(tcpu)){
+				//		stats->incorrectIdle++;
+				//}
 		}
 
 		return tcpu;
@@ -436,6 +436,7 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	int cpu = -1;
 	int this_cpu = smp_processor_id();
 	u32 tcpu;
+	u32 prev_cpu;
 	u32 hash;
 	unsigned long flags;
 	u8 idle_activate = 0;
@@ -482,11 +483,12 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 		rflow = &flow_table->flows[hash & flow_table->mask];
 		tcpu = rflow->cpu;
+		prev_cpu = tcpu;
 
 		uint8_t invalid = 0, idle = 0, overloaded = 0;
 
 		if(			(invalid = previous_invalid(tcpu)) 
-				|| 	(idle = !previous_still_busy(tcpu))
+				|| 	(idle = !is_busy(tcpu))
 				|| 	(overloaded = is_overloaded(tcpu))
 		  ) {
 
