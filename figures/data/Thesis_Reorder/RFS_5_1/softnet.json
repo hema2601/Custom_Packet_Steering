@@ -1,0 +1,362 @@
+[
+{
+"CPU": 0,
+"Processed": 40,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 3,
+"Input Pkts": 3
+},
+{
+"CPU": 1,
+"Processed": 385076,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 302397,
+"IPI Enqueued": 302397,
+"InputQ Dequeued": 314955,
+"Input Pkts": 385076
+},
+{
+"CPU": 2,
+"Processed": 467785,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 370357,
+"IPI Enqueued": 370357,
+"InputQ Dequeued": 385413,
+"Input Pkts": 467785
+},
+{
+"CPU": 3,
+"Processed": 467461,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 365444,
+"IPI Enqueued": 365444,
+"InputQ Dequeued": 380081,
+"Input Pkts": 466628
+},
+{
+"CPU": 4,
+"Processed": 521575,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 402376,
+"IPI Enqueued": 402376,
+"InputQ Dequeued": 414720,
+"Input Pkts": 521575
+},
+{
+"CPU": 5,
+"Processed": 299923,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 237279,
+"IPI Enqueued": 237279,
+"InputQ Dequeued": 248055,
+"Input Pkts": 299923
+},
+{
+"CPU": 6,
+"Processed": 473058,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 371543,
+"IPI Enqueued": 371543,
+"InputQ Dequeued": 384120,
+"Input Pkts": 473058
+},
+{
+"CPU": 7,
+"Processed": 91370,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 71179,
+"IPI Enqueued": 71179,
+"InputQ Dequeued": 75264,
+"Input Pkts": 91370
+},
+{
+"CPU": 8,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 9,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 10,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 11,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 12,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 13,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 14,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 15,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 16,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 17,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 18,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 19,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 20,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 21,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 22,
+"Processed": 4,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 3,
+"IPI Enqueued": 3,
+"InputQ Dequeued": 4,
+"Input Pkts": 4
+},
+{
+"CPU": 23,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 24,
+"Processed": 4,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 3,
+"IPI Enqueued": 3,
+"InputQ Dequeued": 4,
+"Input Pkts": 4
+},
+{
+"CPU": 25,
+"Processed": 9,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 6,
+"IPI Enqueued": 6,
+"InputQ Dequeued": 8,
+"Input Pkts": 9
+},
+{
+"CPU": 26,
+"Processed": 4,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 4,
+"Input Pkts": 4
+},
+{
+"CPU": 27,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 28,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 29,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 30,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 31,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 32,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 33,
+"Processed": 0,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 0,
+"Input Pkts": 0
+},
+{
+"CPU": 34,
+"Processed": 11,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 4,
+"IPI Enqueued": 4,
+"InputQ Dequeued": 11,
+"Input Pkts": 11
+},
+{
+"CPU": 35,
+"Processed": 2,
+"Dropped": 0,
+"Squeezed": 0,
+"RPS Interrupts": 0,
+"IPI Enqueued": 0,
+"InputQ Dequeued": 2,
+"Input Pkts": 2
+}
+]

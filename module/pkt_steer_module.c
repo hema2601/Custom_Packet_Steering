@@ -17,18 +17,29 @@
 //#include <linux/sched.h>
 #include "/home/hema/Custom_Packet_Steering/linux-6.10.8/kernel/sched/sched.h"
 
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
-DEFINE_SPINLOCK(busy_backlog_lock);
-LIST_HEAD(rps_busy_backlog);
+#define BC_PB 0		//Backup Choice: Previous Busy
+#define BC_PO 1		//Backup Choice: Previous Overloaded
+#define BC_PI 2		//Backup Choice: Previous Idle
+#define BC_OB 3		//Backup Choice: Other Busy
+#define BC_OO 4		//Backup Choice: Other Overloaded
+#define BC_OI 5		//Backup Choice: Other Idle
 
-struct busy_backlog_item{
+DEFINE_SPINLOCK(backlog_lock);
+LIST_HEAD(busy_backlog);
+LIST_HEAD(idle_backlog);
 
-	struct list_head list;
+struct backlog_item{
+
+	struct list_head busy_list_entry;
+	struct list_head idle_list_entry;
 	struct softnet_data *sd;
 	int cpu;
-	int overloaded;
+	u64 idle;
+	u64 elapsed;
 };
-DEFINE_PER_CPU(struct busy_backlog_item, busy_backlog_item);
+DEFINE_PER_CPU(struct backlog_item, backlog_item);
 
 
 struct my_ops_stats{
@@ -45,7 +56,31 @@ struct my_ops_stats{
 	int prevOverloaded;
 	int fromOverloaded;
 	int allBusyOverloaded;
+	int potentialReorder;
+	int noIdle;
+	int noIdleLB;
+	int incorrectIdle;
+	int backupChoice[6];
 };
+
+DEFINE_SPINLOCK(lat_lock);
+struct latency_stats{
+	ktime_t min;
+	ktime_t max;
+	int64_t count;
+};
+
+static struct latency_stats lat_stats;
+
+#define LAT_HISTO_SIZE 20
+static const int lat_gran = 50;
+static unsigned long long lat_histo[LAT_HISTO_SIZE];
+
+DEFINE_SPINLOCK(pkt_lock);
+#define PKT_HISTO_SIZE 13
+static const int pkt_gran = 5000;
+static unsigned long long pkt_histo[PKT_HISTO_SIZE];
+static unsigned long long pkt_cnt;
 
 static int num_curr_cpus = 1;
 
@@ -53,6 +88,8 @@ static int curr_busy = 0;
 
 static int *busy_histo;
 static int busy_histo_size;
+
+
 
 DEFINE_PER_CPU(struct my_ops_stats, pkt_steer_stats);
 
@@ -105,9 +142,62 @@ static unsigned long threshold_low __read_mostly = 200;
 module_param(threshold_low, ulong, 0644);
 MODULE_PARM_DESC(threshold_low, "Define the lower CPU utilization threshold at which IAPS scales down (if 20%, then give 200)");
 
-static int iq_thresh __read_mostly = 100;
+static int iq_thresh __read_mostly = 10;
 module_param(iq_thresh, int, 0644);
 MODULE_PARM_DESC(iq_thresh, "Define the limit of packets in the input queue after which a core will be considered overloaded");
+
+static int activate_overload __read_mostly = 1;
+module_param(activate_overload, int, 0644);
+MODULE_PARM_DESC(activate_overload, "Toggle overload detection");
+
+static int risk_reorder __read_mostly = 0;
+module_param(risk_reorder, int, 0644);
+MODULE_PARM_DESC(risk_reorder, "Toggle whether packets should be steered away from an overloaded core, even if the previous core still has packets from the same connection");
+
+static int deactivate_util_lb __read_mostly = 0;
+module_param(deactivate_util_lb, int, 0644);
+MODULE_PARM_DESC(deactivate_util_lb, "Deactivates the adding and reducing of available cores based on average utilization when using the LB backup core selection");
+
+static int check_backup_choice __read_mostly = 0;
+module_param(check_backup_choice, int, 0644);
+MODULE_PARM_DESC(check_backup_choice, "When turned on, every core chosen as backup will be checked on whether they are busy, overloaded, or idle");
+
+static int pkt_histo_measures __read_mostly = 0;
+module_param(pkt_histo_measures, int, 0644);
+MODULE_PARM_DESC(pkt_histo_measures, "When turned on, count steered packets and create a histogram based on their sizes");
+
+static int latency_measures __read_mostly = 0;
+
+static int latency_measures_set(const char *val, const struct kernel_param *kp){
+	int *param = kp->arg;
+
+	int ret = param_set_int(val, kp);
+
+	if (!ret) {
+		if (*param != 0) {
+			//activate latency measures, reset counts
+			lat_stats.min = LONG_MAX;
+			lat_stats.max = 0;
+			lat_stats.count = 0;
+
+			for(int i = 0; i < LAT_HISTO_SIZE; i++)	lat_histo[i] = 0;
+
+		} else {
+			printk("Latency Stats: Min: %lld, Max: %lld, Count: %lld\n", lat_stats.min, lat_stats.max, lat_stats.count);
+			for(int i = 0; i < LAT_HISTO_SIZE; i++)	printk("[%dns, %dns) %lld", i * lat_gran, (i+1) * lat_gran, lat_histo[i]);
+		}
+	}
+
+	return ret;
+}
+
+static const struct kernel_param_ops latency_measures_ops = {
+	.set = latency_measures_set,
+	.get = param_get_int,
+};
+
+module_param_cb(latency_measures, &latency_measures_ops, &latency_measures, 0644);
+
 
 static struct rps_dev_flow_table __rcu *iaps_flow_table;
 
@@ -220,7 +310,7 @@ static int previous_invalid(int tcpu){
     return tcpu >= nr_cpu_ids || !cpu_online(tcpu);
 }
 
-static int previous_still_busy(int tcpu){
+static int is_busy(int tcpu){
     struct sk_buff_head *target_input_queue = &(per_cpu(softnet_data, tcpu).input_pkt_queue);
     unsigned long *target_NAPI_state = &per_cpu(softnet_data, tcpu).backlog.state;
 
@@ -229,6 +319,13 @@ static int previous_still_busy(int tcpu){
     unsigned int has_work = !skb_queue_empty(target_input_queue);
 
     return in_NAPI || has_work;
+
+}
+
+static int iaps_cpu(int tcpu)
+{
+
+	return ((tcpu >= base_cpu) && (tcpu < (base_cpu + max_cpus)));
 
 }
 
@@ -243,6 +340,89 @@ static int is_overloaded(int tcpu){
 }
 
 
+//Non-negative? Its the value of the idle CPU to be activated
+//Negative? Idle core cannot be activated
+
+
+//[Consideration] should we transition a core from idle to busy here?
+// Pros:
+// Earlier busy/idle distinction
+// Cons:
+// Locks for every steered packet
+// Unclear whether this fuction will be called as part of backup core selection or final core selection
+static int activate_idle(void){
+   struct backlog_item *item;
+
+   //If idle backlog is empty/the system cannot provide more busy cores, return -1
+   if(list_empty(&idle_backlog) || curr_busy == max_cpus)   return -1;
+
+   //If number of busy cores already equals number of available cores according to lb, return -2
+   if(choose_backup_core == LB && curr_busy >= num_curr_cpus)  return -2;
+
+   //else return idle core id
+   item = list_first_entry(&idle_backlog, struct backlog_item, idle_list_entry); //[DANGER] This should probably be called with a lock
+   return item->cpu;
+}
+
+static int backup_core_proposal(int this_cpu, u32 hash, struct net_device *dev, struct sk_buff *skb, u8 *ia)
+{
+		int tcpu;
+
+		//[TODO] Decide backup core
+		switch(choose_backup_core){
+				case CURR:
+						tcpu = this_cpu;
+						break;
+				case RPS:
+						tcpu = (hash % max_cpus) + base_cpu;
+						break;
+				case APP:
+						tcpu = perform_rfs(dev, skb);
+						if(tcpu != -1)
+								break;
+						WARN_ONCE(1, "RFS does not seem to be working, fall back to load balancing");
+						fallthrough;
+				case LB:
+						*ia = 1;
+						tcpu = (hash % num_curr_cpus) + base_cpu;
+				case PREV:
+				default:
+						break;
+		}
+
+		return tcpu;
+
+}
+
+static int backup_core_decision(int tcpu, u8 ia, struct my_ops_stats *stats)
+{
+		int ret;
+
+		if (!ia)
+			return tcpu;
+
+		if((ret = activate_idle()) < 0){
+				if (ret == -1)  stats->noIdle++;
+				else if (ret == -2) stats->noIdleLB++;
+		}else{
+				tcpu = (u32)ret;
+				//For Debug reasons, lets check whether this new core is actuyally "Not Busy"
+				//if(is_busy(tcpu)){
+				//		stats->incorrectIdle++;
+				//}
+		}
+
+		return tcpu;
+
+}
+
+static void backup_choice_check(int tcpu, int prev, struct my_ops_stats *stats)
+{
+	if (is_overloaded(tcpu)) 	stats->backupChoice[(tcpu == prev) ? BC_PO : BC_OO]++;
+	else if (is_busy(tcpu)) 	stats->backupChoice[(tcpu == prev) ? BC_PB : BC_OB]++;
+	else 						stats->backupChoice[(tcpu == prev) ? BC_PI : BC_OI]++;
+}
+ 
 static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
 
@@ -256,7 +436,10 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 	int cpu = -1;
 	int this_cpu = smp_processor_id();
 	u32 tcpu;
+	u32 prev_cpu;
 	u32 hash;
+	unsigned long flags;
+	u8 idle_activate = 0;
 
 	stats = &per_cpu(pkt_steer_stats, this_cpu);
 
@@ -300,11 +483,12 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 
 		rflow = &flow_table->flows[hash & flow_table->mask];
 		tcpu = rflow->cpu;
+		prev_cpu = tcpu;
 
 		uint8_t invalid = 0, idle = 0, overloaded = 0;
 
 		if(			(invalid = previous_invalid(tcpu)) 
-				|| 	(idle = !previous_still_busy(tcpu))
+				|| 	(idle = !is_busy(tcpu))
 				|| 	(overloaded = is_overloaded(tcpu))
 		  ) {
 
@@ -316,76 +500,56 @@ static int this_get_cpu(struct net_device *dev, struct sk_buff *skb,
 				stats->prevOverloaded++;
 				//If packets of this flow are still enqueued, jump out of new target selection
 				if ((int)(READ_ONCE(per_cpu(softnet_data, tcpu).input_queue_head) -
-					 rflow->last_qtail) < 0)
-					goto confirm_target;
+					 rflow->last_qtail) < 0){
+					if(!risk_reorder)	goto confirm_target;
+					stats->potentialReorder++;
+				}
 				
 				stats->fromOverloaded++;
 
 			}
 
-			//[TODO] Decide backup core
-			switch(choose_backup_core){
-				case CURR:
-					tcpu = this_cpu;
-					break;
-				case RPS:
-					if (map) 
-						tcpu = map->cpus[reciprocal_scale(hash, map->len)];
-					break;
-				case APP:
-					tcpu = perform_rfs(dev, skb);
-					if(tcpu != -1)
-						break;
-					WARN_ONCE(1, "RFS does not seem to be working, fall back to load balancing");
-					fallthrough;
-				case LB:
-					tcpu = (hash % num_curr_cpus) + base_cpu;
-				case PREV:
-				default:
-					break;
-			}
+			tcpu = backup_core_proposal(this_cpu, hash, dev, skb, &idle_activate);
 
-			spin_lock(&busy_backlog_lock);
-			if(!list_empty(&rps_busy_backlog)){
-/*				struct busy_backlog_item *item;
-				if(list_position == MY_LIST_HEAD)
-					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-				else 
-					item = list_last_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-
-				if(item){
-					stats->assignedToBusy++;
-					tcpu = item->cpu;
-				}else{
-					stats->noBusyAvailableRace++;
-				}*/
-				struct busy_backlog_item *item;
+			spin_lock_irqsave(&backlog_lock, flags);
+			if(!list_empty(&busy_backlog)){
+				struct backlog_item *item;
 				struct list_head *next;	
 
-				list_for_each(next, &rps_busy_backlog){
-					item = list_entry(next, struct busy_backlog_item, list);
+				list_for_each(next, &busy_backlog){
+					item = list_entry(next, struct backlog_item, busy_list_entry);
 					if (!is_overloaded(item->cpu))	break;
 					else							item = NULL;
 				}
 
-				/*if(list_position == MY_LIST_HEAD)
-					item = list_first_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-				else 
-					item = list_last_entry(&rps_busy_backlog, struct busy_backlog_item, list);
-				*/
-
 				if(item){
 					stats->assignedToBusy++;
 					tcpu = item->cpu;
 				}else{
+
+					tcpu = backup_core_decision(tcpu, idle_activate, stats);
+
 					stats->allBusyOverloaded++;
+			
+					if(check_backup_choice){
+						backup_choice_check(tcpu, prev_cpu, stats);
+					}
+		
 				}
 
 
 			}else{
+
+				tcpu = backup_core_decision(tcpu, idle_activate, stats);
+ 
 				stats->noBusyAvailable++;
+				
+				if(check_backup_choice){
+					backup_choice_check(tcpu, prev_cpu, stats);
+				}
+
 			}
-			spin_unlock(&busy_backlog_lock);
+			spin_unlock_irqrestore(&backlog_lock, flags);
 
 			rflow = sd->pkt_steer_ops->set_rps_cpu(dev, skb, rflow, tcpu);
 		}
@@ -420,32 +584,71 @@ done:
 
 }
 
+static void remove_from_idle(int tcpu)
+{
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).idle_list_entry); 
+	
+	if(list->prev != list){
+		list_del_init(list);
+	}
+
+}
+
+static void remove_from_busy(int tcpu)
+{
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).busy_list_entry); 
+	
+	if(list->prev != list){
+		list_del_init(list);
+		curr_busy--;
+	}
+}
+
+static void add_to_busy(int tcpu)
+{
+	if(!iaps_cpu(tcpu))	return;
+
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).busy_list_entry);	
+	if(list->prev == list){
+    	list_add(list, &busy_backlog);
+		curr_busy++;
+	}
+}
+
+static void add_to_idle(int tcpu)
+{
+	if(!iaps_cpu(tcpu))	return;
+
+	struct list_head *list = &(per_cpu(backlog_item, tcpu).idle_list_entry);	
+	if(list->prev == list){
+    	list_add(list, &idle_backlog);
+	}
+}
+
+
 static void this_before(int tcpu){
 
-	struct list_head *list = &(per_cpu(busy_backlog_item, tcpu).list);	
-	
+	unsigned long flags;
     
-	spin_lock(&busy_backlog_lock);
-	//printk("Adding to busy list");
-	if(list->prev == list){
-		curr_busy++;
-    	list_add(list, &rps_busy_backlog);
-	}
-    spin_unlock(&busy_backlog_lock);
+	spin_lock_irqsave(&backlog_lock, flags);
+	
+	remove_from_idle(tcpu);
+	add_to_busy(tcpu);
+	
+	spin_unlock_irqrestore(&backlog_lock, flags);
    
 }
 
 static void this_after(int tcpu){
 	
-	struct busy_backlog_item *item = &per_cpu(busy_backlog_item, tcpu);	
+	unsigned long flags;
 	
-    spin_lock(&busy_backlog_lock);
-	//printk("Removing from busy list");
-	if(item->list.prev != &item->list){
-		curr_busy--;
-		list_del_init(&item->list);
-    }
-    spin_unlock(&busy_backlog_lock);
+    spin_lock_irqsave(&backlog_lock, flags);
+
+	remove_from_busy(tcpu);
+	add_to_idle(tcpu);
+
+    spin_unlock_irqrestore(&backlog_lock, flags);
 
 }
 
@@ -570,13 +773,60 @@ static void interface_mark_as_idle(int tcpu){
 	if(custom_toggle == 1) this_after(tcpu);
 		
 }
+
+static void enter_latency_data(ktime_t lat, struct latency_stats *stats, long long int *histo, int size, int gran){
+		int idx;
+
+		if(lat > stats->max)	stats->max = lat;
+		if(lat < stats->min)	stats->min = lat;
+
+		stats->count++;
+
+		idx = lat / gran;
+
+		histo[(idx < size)?idx:size-1]++;
+
+}
+
 static int interface_get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 		struct rps_dev_flow **rflowp){
 
-	if(custom_toggle == 1)	return this_get_cpu(dev, skb, rflowp);
-		
-	else 				return get_rps_cpu_copy(dev, skb, rflowp);
+	int ret;
+	ktime_t lat;
+	unsigned long size;
+	int idx;
 
+	if(pkt_histo_measures){
+		if (skb->len > 300)	size = skb->data_len;
+		else				size = skb->len;
+
+		idx = size / pkt_gran;
+
+		spin_lock(&pkt_lock);
+		pkt_histo[(idx < PKT_HISTO_SIZE)?idx:PKT_HISTO_SIZE-1]++;
+		if (idx == 0 && size < 500)	pkt_histo[idx]--;	
+		pkt_cnt++;
+		spin_unlock(&pkt_lock);
+
+	}
+
+	if(latency_measures)
+		lat = ktime_get();
+
+	if(custom_toggle == 1)	ret = this_get_cpu(dev, skb, rflowp);
+		
+	else 				ret = get_rps_cpu_copy(dev, skb, rflowp);
+
+	if(latency_measures){
+		lat = ktime_get() - lat;
+
+		spin_lock(&lat_lock);
+
+		enter_latency_data(lat, &lat_stats, lat_histo, LAT_HISTO_SIZE, lat_gran);
+
+		spin_unlock(&lat_lock);
+	}
+	return ret;
 
 }
 
@@ -597,10 +847,22 @@ static int my_proc_show(struct seq_file *m,void *v){
 
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded);
+		seq_printf(m, "%08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", i, stat.total, stat.prevInvalid, stat.prevIdle, stat.assignedToBusy, stat.noBusyAvailable, stat.targetIsSelf, stat.choseInvalid, stat.fallback, stat.prevOverloaded, stat.fromOverloaded, stat.allBusyOverloaded, stat.potentialReorder, stat.incorrectIdle, stat.noIdle, stat.noIdleLB, stat.backupChoice[BC_PB], stat.backupChoice[BC_PO], stat.backupChoice[BC_PI], stat.backupChoice[BC_OB], stat.backupChoice[BC_OO], stat.backupChoice[BC_OI]);
 	}
 
 	for(i = 0; i < busy_histo_size; i++)	seq_printf(m, "%08x ", busy_histo[i]);
+
+	seq_printf(m, "\n");
+
+	seq_printf(m, "%08x ", lat_gran);
+
+	for(i = 0; i < LAT_HISTO_SIZE; i++)	seq_printf(m, "%08llx ", lat_histo[i]);
+
+	seq_printf(m, "\n");
+	
+	seq_printf(m, "%08llx %08x ", pkt_cnt, pkt_gran);
+
+	for(i = 0; i < PKT_HISTO_SIZE; i++)	seq_printf(m, "%08llx ", pkt_histo[i]);
 
 	seq_printf(m, "\n");
 	
@@ -632,7 +894,7 @@ static int create_proc(void){
 	if(!entry){
 		return -1;
 	}else{
-		printk(KERN_INFO "create proc file successfully\n");
+		pr_info("Create proc file successfully\n");
 	}
 	return 0;
 
@@ -641,41 +903,68 @@ static int create_proc(void){
 
 static struct timer_list lb_timer;
 
-static inline unsigned long cpu_util(int cpu){
 
-	return cpu_util_cfs(cpu);
+static unsigned long get_and_update_cpu_util(struct backlog_item *item, int cpu){
+
+        unsigned long util;
+        unsigned int idle, elapsed, prev_idle, prev_elapsed;
+
+        prev_idle       = item->idle;
+        prev_elapsed    = item->elapsed;
+
+        item->idle = get_cpu_idle_time(cpu, &item->elapsed, 0);
+
+        elapsed = item->elapsed - prev_elapsed;
+        idle    = item->idle - prev_idle;
+
+        util = elapsed/1000 - idle/1000;
+
+        pr_debug("CPU #%d: %lu Idle time: %u (%u)\n", cpu, util, idle/1000, elapsed/1000);
+
+        return util;
+
 }
 
 static void iaps_load_balancer(struct timer_list *timer){
 
-	unsigned long avg_util = 0;
+    unsigned long avg_util = 0;
+    struct backlog_item *item;
 
-	if(choose_backup_core != LB)
-		goto rearm;
 
-	//Check average utilization
-	for(int i = 0; i < num_curr_cpus; i++){
-		unsigned long util = cpu_util(base_cpu + i);
-
-		avg_util += util;
+    //Skip Calculations, if no load balancing needed
+    if(choose_backup_core != LB){
+        goto rearm;
 	}
 
-	avg_util /= num_curr_cpus;
-
-	//update CPU count
-
-	if(avg_util > threshold_up && num_curr_cpus < max_cpus)
-		num_curr_cpus++;
-	
-	if(avg_util < threshold_low && num_curr_cpus > 1)
-		num_curr_cpus--;
+	if(deactivate_util_lb){
+		num_curr_cpus = max_cpus;
+		goto rearm;
+	}
 
 
+    //Check average utilization
+    for(int i = 0; i < num_curr_cpus; i++){
+        item = &per_cpu(backlog_item, base_cpu + i);
+        avg_util += get_and_update_cpu_util(item, base_cpu+i);
+    }
+    avg_util /= num_curr_cpus;
 
 
-	// Rearm Timer
+    //update CPU count
+    if((avg_util > threshold_up) && num_curr_cpus < max_cpus){
+        item = &per_cpu(backlog_item, base_cpu + num_curr_cpus);
+        //Obtain initial values
+        item->idle=get_cpu_idle_time(base_cpu+num_curr_cpus, &item->elapsed, 0);
+        num_curr_cpus++;
+    }
+
+    if(avg_util < threshold_low && num_curr_cpus > 1)
+        num_curr_cpus--;
+
+
+    // Rearm Timer
 rearm:
-	mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
+    mod_timer(&lb_timer, jiffies + msecs_to_jiffies(1000));
 
 }
 
@@ -741,42 +1030,49 @@ static int create_flow_table(int destroy){
 static int __init init_pkt_steer_mod(void){
 	int ret;
 	int i;
-	struct busy_backlog_item *item;
-	printk("Inserting Module");
+	struct backlog_item *item;
+	pr_info("Inserting Module");
 	
 	for_each_possible_cpu(i){
-		item = &per_cpu(busy_backlog_item, i);
+		item = &per_cpu(backlog_item, i);
 
 		item->cpu = i;
-		INIT_LIST_HEAD(&item->list);
+		INIT_LIST_HEAD(&item->busy_list_entry);
+		INIT_LIST_HEAD(&item->idle_list_entry);
 		item->sd = &per_cpu(softnet_data, i);
+		if (i)
+			list_add_tail(&item->idle_list_entry, &idle_backlog);
 	}
 
 	busy_histo_size = cpumask_weight(cpu_possible_mask) + 1;
 	busy_histo = kmalloc_array(busy_histo_size, sizeof(int), GFP_KERNEL);
 
 	if(busy_histo == NULL){
-		printk(KERN_ERR "No more mem\n");
+		pr_err("No more mem\n");
 		return ret;
 	}
 
-	printk("CPUs: %d %d", cpumask_weight(cpu_possible_mask), busy_histo_size);
-
+	for (int i = 0; i < busy_histo_size; i++)
+		busy_histo[i] = 0;	
+	
 	ret = create_flow_table(0);
 	if(ret < 0){
-		printk(KERN_ERR "Failed to set up flow table for IAPS (%d)\n", ret);
+		kfree(busy_histo);
+		pr_err("Failed to set up flow table for IAPS (%d)\n", ret);
 		return ret;
 	}
 
-	if(!list_empty(&rps_busy_backlog)){
-		printk(KERN_ERR "Busy Backlog still has entries. Abort.");
+	if(!list_empty(&busy_backlog)){
+		pr_err("Busy Backlog still has entries. Abort.");
+		kfree(busy_histo);
 		create_flow_table(1);
 		return -1;
 	}
 
 	ret = create_proc();
 	if(ret < 0){
-		printk(KERN_ERR "pkt_steer_module could not setup proc (%d)\n", ret);
+		pr_err("pkt_steer_module could not setup proc (%d)\n", ret);
+		kfree(busy_histo);
 		create_flow_table(1);
 		return ret;
 	}
@@ -795,7 +1091,6 @@ static void __exit exit_pkt_steer_mod(void){
 	int i;
 	for_each_possible_cpu(i){
 		struct my_ops_stats stat = per_cpu(pkt_steer_stats, i);
-		printk("CPU %d: %d %d %d %d %d", i, stat.total, stat.assignedToBusy, stat.noBusyAvailable, stat.noBusyAvailableRace, stat.targetIsSelf);
 	}
 
 	remove_proc_entry("pkt_steer_module", NULL);
@@ -826,6 +1121,6 @@ MODULE_LICENSE("GPL");
  *	differ in minor features. Iterate on the third number until stable 		*
  *	performance can be observed.											*
  ****************************************************************************/
-MODULE_VERSION("0.1.6" " " "20250228");
+MODULE_VERSION("1.0.3" " " "20250409");
 MODULE_AUTHOR("Maike Helbig <hema@g.skku.edu>");
 

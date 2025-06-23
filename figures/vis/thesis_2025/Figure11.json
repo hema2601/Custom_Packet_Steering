@@ -1,0 +1,20 @@
+{
+		"$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+		"description": "A simple bar chart with embedded data.",
+		"data": {"name":"myData"},
+        "transform": [
+                {"calculate":"(datum.Exp == 'IAPS-Full-Overload-40') ? 'IAPS': datum.Exp", "as":"Scheme"}
+        ],
+		"repeat":["TCPHPHits"],
+		"spec":{
+        "width":700,
+				"mark": {"type":"bar", "tooltip":true},
+				"encoding": {
+						"xOffset":{"field":"Scheme"},
+				"x": {"field": "Conns", "type": "ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":360}},
+				"y": {"aggregate":"mean","field": {"repeat":"repeat"}, "type": "quantitative", "title":"Mean of TCP Fast Path Executions", "axis":{"labelFontSize":15, "titleFontSize":15}},
+				"color": {"field": "Scheme", "type": "nominal", "legend": {"labelFontSize":15, "titleFontSize":15}}
+				}
+		}
+}
+

@@ -5,19 +5,21 @@ import re
 
 # Add new filetypes here
 class Filetype(Enum):
-    PACKET_CNT  = 1
-    SOFTIRQ     = 2
-    IRQ         = 3
-    IPERF       = 4
-    SOFTNET     = 5
-    PKT_STEER   = 6
-    PROC_STAT   = 7
-    PERF        = 8
-    PERF_STAT   = 9
-    BUSY_HISTO  = 10
-    IPERF_LAT   = 11
-
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO', 'IPERF_LAT'])
+    PACKET_CNT      = 1
+    SOFTIRQ         = 2
+    IRQ             = 3
+    IPERF           = 4
+    SOFTNET         = 5
+    PKT_STEER       = 6
+    PROC_STAT       = 7
+    PERF            = 8
+    PERF_STAT       = 9
+    BUSY_HISTO      = 10
+    IPERF_LAT       = 11
+    PKT_LAT_HISTO   = 12
+    NETSTAT         = 13
+    PKT_SIZE_HISTO  = 14
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO', 'IPERF_LAT', 'PKT_LAT_HISTO', 'NETSTAT', 'PKT_SIZE_HISTO'])
 
 
 class JsonGenerator:
@@ -189,6 +191,7 @@ class IPERFGen(JsonGenerator):
         conns = list()
         #histo_stats = dict()
     
+        tmp_list = list()
 
         for conn in tmp_dict["start"]["connected"]:
             elem = dict()
@@ -216,7 +219,32 @@ class IPERFGen(JsonGenerator):
 
                         break
 
-                self.json_dict.append(elem)
+                tmp_list.append(elem)
+
+        # Determine ConnPerCore
+
+        napi_ids = set()
+        for elem in tmp_list:
+            napi_ids.add(elem["NAPI_ID"])
+
+        napi_dict = dict()
+        for elem in napi_ids:
+            napi_dict[elem] = set()
+
+        for elem in tmp_list:
+            napi_dict[elem["NAPI_ID"]].add(elem["Socket"])
+
+        id_dict = dict()
+
+        for napi in napi_dict.keys():
+            count = len(napi_dict[napi])
+            for s in napi_dict[napi]:
+                id_dict[s] = count
+
+        # Add into json_dict
+        for elem in tmp_list:
+            elem["ConnPerCore"] = id_dict[elem["Socket"]]
+            self.json_dict.append(elem)
 
       #          histo = next((end_stream for end_stream in tmp_dict["end"]["streams"] if end_stream['receiver']['socket'] == stream['socket']), None)
       #          
@@ -352,8 +380,19 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16) - elem["TargetIsSelf"]
                 elem["ChoseInvalid"] = int(parts[7],16) - elem["ChoseInvalid"]
                 elem["Fallback"] = int(parts[8],16) - elem["Fallback"]
-                #elem["IsOverloaded"] = int(parts[9],16) - elem["IsOverloaded"]
-                #elem["FromOverloaded"] = int(parts[10],16) - elem["FromOverloaded"]
+                elem["IsOverloaded"] = int(parts[9],16) - elem["IsOverloaded"]
+                elem["FromOverloaded"] = int(parts[10],16) - elem["FromOverloaded"]
+                elem["AllOverloaded"] = int(parts[11],16) - elem["AllOverloaded"]
+                elem["PotentialReorder"] = int(parts[12],16) - elem["PotentialReorder"]
+                elem["IncorrectIdle"] = int(parts[13],16) - elem["IncorrectIdle"]
+                elem["NoIdle"] = int(parts[14],16) - elem["NoIdle"]
+                elem["NoIdleLB"] = int(parts[15],16) - elem["NoIdleLB"]
+                elem["BC_PB"] = int(parts[16],16) - elem["BC_PB"]
+                elem["BC_PO"] = int(parts[17],16) - elem["BC_PO"]
+                elem["BC_PI"] = int(parts[18],16) - elem["BC_PI"]
+                elem["BC_OB"] = int(parts[19],16) - elem["BC_OB"]
+                elem["BC_OO"] = int(parts[20],16) - elem["BC_OO"]
+                elem["BC_OI"] = int(parts[21],16) - elem["BC_OI"]
             else:
                 elem = dict()
                 elem["CPU"] = curr_cpu
@@ -365,8 +404,19 @@ class PKT_STEERGen(JsonGenerator):
                 elem["TargetIsSelf"] = int(parts[6],16)
                 elem["ChoseInvalid"] = int(parts[7],16)
                 elem["Fallback"] = int(parts[8],16)
-                #elem["IsOverloaded"] = int(parts[9],16)
-                #elem["FromOverloaded"] = int(parts[10],16)
+                elem["IsOverloaded"] = int(parts[9],16)
+                elem["FromOverloaded"] = int(parts[10],16)
+                elem["AllOverloaded"] = int(parts[11],16)
+                elem["PotentialReorder"] = int(parts[12],16)
+                elem["IncorrectIdle"] = int(parts[13],16)
+                elem["NoIdle"] = int(parts[14],16)
+                elem["NoIdleLB"] = int(parts[15],16)
+                elem["BC_PB"] = int(parts[16],16)
+                elem["BC_PO"] = int(parts[17],16)
+                elem["BC_PI"] = int(parts[18],16)
+                elem["BC_OB"] = int(parts[19],16)
+                elem["BC_OO"] = int(parts[20],16)
+                elem["BC_OI"] = int(parts[21],16)
                 self.json_dict.append(elem)
 
 class PROC_STATGen(JsonGenerator):
@@ -679,6 +729,136 @@ class IPERF_LATGen(JsonGenerator):
             item["total"] = histo_stats["total"]
             self.json_dict.append(item)
 
+
+class PKT_LAT_HISTOGen(JsonGenerator):
+
+    def generate_json(self):
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        line_count = 0
+        gran = 0
+
+        for line in self.f:
+            parts = [x for x in line.split(' ') if x.strip()]
+
+            gran = int(parts[0], 16)
+
+            idx = 0
+            for part in parts[1:]:
+                c = int(part, 16)
+                if line_count == 0:
+                    elem = dict()
+                    elem["start"] = idx * gran
+                    elem["end"] = (idx + 1) * gran
+                    elem["count"] = c
+                    self.json_dict.append(elem)
+                else:
+                    elem = next((item for item in self.json_dict if item["start"] == idx * gran), None)
+                    elem["count"] = c - elem["count"]
+                idx += 1
+
+            line_count += 1
+
+
+class NETSTATGen(JsonGenerator):
+
+    def generate_json(self):
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+
+        tcp_ext_dict = dict()
+
+        keys = ["TCPOFOQueue", "TCPHPHits", "TCPOFODrop"]
+
+        elem = dict()
+
+        while True:
+            l1 = self.f.readline()
+            l2 = self.f.readline()
+
+            if not l1 or not l2:
+                break
+
+            p1 = [x for x in l1.split(' ') if x.strip()]
+            p2 = [x for x in l2.split(' ') if x.strip()]
+
+            if p1[0] == p2[0] and p1[0] == "TcpExt:":
+                for idx in range(1, len(p1)):
+                    tcp_ext_dict[p1[idx]] = int(p2[idx])
+
+                #for k in tcp_ext_dict.keys():
+                #    print(k, tcp_ext_dict[k])
+
+                for k in keys:
+                    if k in elem.keys():
+                        elem[k] = tcp_ext_dict[k] - elem[k]
+                    else:
+                        elem[k] = tcp_ext_dict[k]
+
+        #print(elem)
+
+        self.json_dict.append(elem)
+        
+
+#        for line in self.f:
+#            parts = [x for x in line.split(' ') if x.strip()]
+#
+#            gran = int(parts[0], 16)
+#
+#            idx = 0
+#            for part in parts[1:]:
+#                c = int(part, 16)
+#                if line_count == 0:
+#                    elem = dict()
+#                    elem["start"] = idx * gran
+#                    elem["end"] = (idx + 1) * gran
+#                    elem["count"] = c
+#                    self.json_dict.append(elem)
+#                else:
+#                    elem = next((item for item in self.json_dict if item["start"] == idx * gran), None)
+#                    elem["count"] = c - elem["count"]
+#                idx += 1
+#
+#            line_count += 1
+class PKT_SIZE_HISTOGen(JsonGenerator):
+
+    def generate_json(self):
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        line_count = 0
+        gran = 0
+
+        for line in self.f:
+            parts = [x for x in line.split(' ') if x.strip()]
+            total = int(parts[0], 16)
+            gran = int(parts[1], 16)
+
+            idx = 0
+            for part in parts[2:]:
+                c = int(part, 16)
+                if line_count == 0:
+                    elem = dict()
+
+                    elem["start"] = idx * gran
+                    elem["end"] = (idx + 1) * gran
+                    elem["count"] = c
+                    elem["total"] = total
+                    self.json_dict.append(elem)
+                else:
+                    elem = next((item for item in self.json_dict if item["start"] == idx * gran), None)
+                    elem["count"] = c - elem["count"]
+                idx += 1
+
+            line_count += 1
 
 argc = len(sys.argv)
 

@@ -1,0 +1,34 @@
+{
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+                "name":"myData"
+        },
+        "width":300,
+        "height":300,
+        "transform": [
+                {"filter": "datum.Busy_CPUs < 4"},
+                {"filter": "datum.Count >= 0"},
+                {"calculate":"(datum.Exp == 'IAPS-Base') ? 'IAPS Basic': datum.Exp", "as":"Scheme"},
+                {"calculate":"(datum.Scheme == 'IAPS-Basic-Overload-40') ? '+ Overload': datum.Scheme", "as":"Scheme"},
+                {"calculate":"(datum.Scheme == 'IAPS-Full-Overload-40') ? '+ Reorder': datum.Scheme", "as":"Scheme"},
+                {"calculate":"datum.Busy_CPUs", "as":"Busy Cores"}
+        ],
+        "mark": {"type": "bar", "tooltip": true},
+        "encoding": {
+                
+                "facet": {
+                        "field": "Scheme",
+                        "type": "ordinal",
+                        "columns": 3, 
+                        "header":{
+                            "labelFontSize":15, 
+                            "titleFontSize":15
+                        },
+                        "sort":["IAPS Basic", "+ Overload", "+ Reorder"]
+                },
+				"x": {"field": "Conns", "type": "ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":45}},
+				"y": {"aggregate":"mean","field": "Count", "type": "quantitative", "title":"Mean of Counts", "axis":{"labelFontSize":15, "titleFontSize":15}},
+				"color": {"field": "Busy Cores", "type": "nominal", "legend": {"labelFontSize":15, "titleFontSize":15}}
+        }
+}
+

@@ -160,8 +160,10 @@ then
 	type="IAPS"
 else
 	echo "Disable Custom"
-	echo 0 > /sys/module/pkt_steer_module/parameters/custom_toggle
-
+	if test -f /sys/module/pkt_steer_module/parameters/custom_toggle
+	then 
+		echo 0 > /sys/module/pkt_steer_module/parameters/custom_toggle
+	fi
 	#rmmod pkt_steer_module
 	#if [[ "$rfs" == "0" ]]
 	#then
@@ -212,6 +214,10 @@ PERFSTAT_PID=$!
 # Run iperf3
 #taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} > /dev/null"&
 taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -s -1 -J $IPERF_CUSTOM_ARGS > $current_path/iperf.json & ssh $remote_client_addr "iperf3 -c ${server_ip} -P ${conns} -M ${mss} -t ${time} > /dev/null"&
+
+# For use in virtual environment, we use the reverse iperf setting (no custom iperf is usable)
+#ssh $remote_client_addr "iperf3 -s -1 > /dev/null" & taskset -c "$APP_CORE-$((APP_CORE + APP_CORE_NUM - 1))" $IPERF_BIN -c 10.0.0.4 -J -P ${conns} -M ${mss} -t ${time}> $current_path/iperf.json &
+
 IPERF_PID=$!
 
 # Perform Latency Test 
@@ -281,21 +287,21 @@ then
 #		echo "TYPE	APP" >> $current_path/data/$exp_name/perf.json 
 #		$PERF_BIN report --stdio --stdio-color never --percent-limit 0.01 -i $current_path/perf_app.json >> $current_path/data/$exp_name/perf.json
 ##	fi
-	if test -f perf_stat_irq.json
+	if test -f $current_path/perf_stat_irq.json
 	then 
 		echo "TYPE	IRQ" >> $current_path/data/$exp_name/perf_stat.json 
 		cat $current_path/perf_stat_irq.json >> $current_path/data/$exp_name/perf_stat.json
 		rm $current_path/perf_stat_irq.json
 	fi
 
-	if test -f perf_stat_pp.json
+	if test -f $current_path/perf_stat_pp.json
 	then 
 		echo "TYPE	PP" >> $current_path/data/$exp_name/perf_stat.json 
 		cat $current_path/perf_stat_pp.json >> $current_path/data/$exp_name/perf_stat.json
 		rm $current_path/perf_stat_pp.json
 	fi
 
-	if test -f perf_stat_app.json
+	if test -f $current_path/perf_stat_app.json
 	then 
 		echo "TYPE	APP" >> $current_path/data/$exp_name/perf_stat.json 
 		cat $current_path/perf_stat_app.json >> $current_path/data/$exp_name/perf_stat.json
@@ -317,7 +323,8 @@ rm $current_path/perf_stat.json
 
 
 # Apply File Transformation
-python3 $current_path/file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER PERF_STAT IPERF_LAT BUSY_HISTO
+python3 $current_path/file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER PERF_STAT IPERF_LAT BUSY_HISTO PKT_LAT_HISTO
+python3 $current_path/file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER PERF_STAT IPERF_LAT BUSY_HISTO PKT_LAT_HISTO NETSTAT PKT_SIZE_HISTO
 #python3 file_formatter.py $exp_name IRQ SOFTIRQ PACKET_CNT IPERF SOFTNET PROC_STAT PKT_STEER PERF
 
 

@@ -1,0 +1,25 @@
+{
+		"$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+		"data": {
+				"name":"myData"
+		},
+		"transform": [
+				{"filter":"datum['RPS Interrupts'] != 0"},
+				{"calculate":"datum['Input Pkts'] / datum['InputQ Dequeued']", "as":"Input Queue Length"},
+				{"calculate":"datum['InputQ Dequeued'] / datum['RPS Interrupts']", "as":"Processing Cycles per IPI"},
+				{"calculate":"(datum.Exp == 'IAPS-Full-Overload-40') ? 'IAPS': datum.Exp", "as":"Scheme"}
+		],
+		"repeat":["Input Queue Length", "Processing Cycles per IPI"],
+		"columns":1,
+		"spec":{
+        "width":700,
+				"mark": {"type":"bar","tooltip":true},
+				"encoding": {
+				"x": {"field": "Conns", "type": "ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":360}},
+						"xOffset": {"field": "Scheme"},
+				"y": {"aggregate":"mean","field": {"repeat": "repeat"}, "type": "quantitative", "axis":{"labelFontSize":15, "titleFontSize":15}},
+				"color": {"field": "Scheme", "type": "nominal", "legend": {"labelFontSize":15, "titleFontSize":15}}
+				}
+		}
+}
+

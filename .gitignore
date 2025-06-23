@@ -2,3 +2,9 @@ data/*
 *.sw*
 summaries*
 linux-6.10.8
+*.o
+*.ko
+*.mod*
+Module.symvers
+modules.order
+*.cmd

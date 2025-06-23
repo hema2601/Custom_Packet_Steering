@@ -10,8 +10,11 @@ cat /proc/interrupts | grep -f tmp.txt > before_irq.txt
 cat /proc/net/softnet_stat > before_softnet.txt
 cat /proc/stat > before_proc_stat.txt
 if test -f /proc/pkt_steer_module; then
-	head -n -1 /proc/pkt_steer_module > before_pkt_steer.txt
-	tail -n 1 /proc/pkt_steer_module > before_busy_histo.txt
+	head -n -3 /proc/pkt_steer_module > before_pkt_steer.txt
+	tail -n 3 /proc/pkt_steer_module | head -n 1 > before_busy_histo.txt
+	tail -n 2 /proc/pkt_steer_module | head -n 1 > before_pkt_lat_histo.txt
+	tail -n 1 /proc/pkt_steer_module > before_pkt_size_histo.txt
 fi
+cat /proc/net/netstat > before_netstat.txt
 
 

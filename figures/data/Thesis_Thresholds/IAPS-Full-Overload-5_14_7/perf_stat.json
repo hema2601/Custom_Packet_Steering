@@ -1,0 +1,30 @@
+[
+{
+"Type": "IRQ",
+"cycles": 42708377638,
+"instructions": 60483255685,
+"LLC-loads": 76457476,
+"LLC-load-misses": 1003608
+},
+{
+"Type": "PP",
+"cycles": 20448522089,
+"instructions": 30400476176,
+"LLC-loads": 129927367,
+"LLC-load-misses": 254275
+},
+{
+"Type": "APP",
+"cycles": 86077972920,
+"instructions": 52137118346,
+"LLC-loads": 999322764,
+"LLC-load-misses": 80869055
+},
+{
+"Type": "FULL",
+"cycles": 139170325761,
+"instructions": 131111808229,
+"LLC-loads": 1140716345,
+"LLC-load-misses": 81194959
+}
+]

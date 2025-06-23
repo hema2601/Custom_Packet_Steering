@@ -1,0 +1,22 @@
+{
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "data": {
+                "name":"myData"
+        },
+        "width":420,
+        "height":420,
+        "transform": [
+                {"filter": "datum.Busy_CPUs < 4"},
+                {"filter": "datum.Count >= 0"},
+                {"calculate":"(datum.Exp == 'IAPS-Full-Overload-40') ? 'IAPS': datum.Exp", "as":"Scheme"},
+                {"calculate":"datum.Busy_CPUs", "as":"Busy Cores"},
+                {"filter":"datum.Scheme == 'IAPS'"}
+        ],
+        "mark": {"type": "bar", "tooltip": true},
+        "encoding": {
+				"x": {"field": "Conns", "type": "ordinal", "sort":[], "title":"Connections", "axis":{"labelFontSize":15, "titleFontSize":15, "labelAngle":360}},
+				"y": {"aggregate":"mean","field": "Count", "type": "quantitative", "title":"Mean of Counts", "axis":{"labelFontSize":15, "titleFontSize":15}},
+				"color": {"field": "Busy Cores", "type": "nominal", "legend": {"labelFontSize":15, "titleFontSize":15}}
+        }
+}
+

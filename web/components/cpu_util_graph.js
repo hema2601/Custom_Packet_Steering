@@ -18,7 +18,7 @@ var CPUUtil = {
 		{"calculate":"(datum.Nice+ datum.IOWait + datum.Irq+ datum.Steal + datum.Guest + datum.Guest_Nice) / datum.Total", "as":"Others"},
 		{"fold": ["UP", "SyP", "SoP", "IP", "Others"]}
 	],
-	"mark": "bar",
+	"mark": {"type":"bar", "tooltip":true},
 	"encoding": {
 		"column": {"field": "Exp",  "type": "nominal"},
 		"row":{"field":"Rep"},

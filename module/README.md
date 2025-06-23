@@ -36,3 +36,29 @@ Reintroduced some values to track the efficiency of the overload handling mechan
 0.1.6
 
 Reintroducing the busy histogram
+
+0.1.7
+
+Restored load balancing timer (not using cfs utilization)
+(This caused performance regression, look into the reason)
+
+0.1.8
+
+Introduce RPS-like steering between all IAPS-available cores (change the RPS Backup Core Decision)
+
+
+1.0.0
+
+No feature change compare to 0.1.8, but it runs now on the newer kernel patch (wiht the addition of a small debug statement)
+
+1.0.1
+
+Added risk_reorder parameter and potentialReorder stat. Packets can now be forcably steered away from an overloaded core, even if it risks reordering
+
+1.0.2
+
+Added idle backlog and active idle activation. This messes with other schemes (IAPS+RFS/+RPS), which will need to be fixed.
+
+1.0.3
+
+Fixed some stability problems and updated some outdated defaults. The idle backlog is now fairly stable. IAPS+RPS was fixed, IAPS+RFS still does not work. (Consider simply removing?)

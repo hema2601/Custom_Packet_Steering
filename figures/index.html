@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+	<head>
+		<title>IPC Data</title>
+		<script src="https://cdn.jsdelivr.net/npm/vega@5.29.0"></script>
+		<script src="https://cdn.jsdelivr.net/npm/vega-lite@5.19.0"></script>
+		<script src="https://cdn.jsdelivr.net/npm/vega-embed@6.25.0"></script>
+		<!-- <script src="https://cdn.jsdelivr.net/npm/vega-tooltip@0.35.2"></script> -->
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+
+
+		<!-- Import Vega 5 & Vega-Lite 4 (does not have to be from CDN) -->
+
+
+		<style>
+		.collapsible {
+			background-color: #777;
+			color: white;
+			cursor: pointer;
+			padding: 18px;
+			width: 100%;
+			border: none;
+			text-align: left;
+			outline: none;
+			font-size: 15px;
+		}
+
+		.active, .collapsible:hover {
+		    background-color: #555;
+		}
+
+		.content {
+		    padding: 0 18px;
+		    display: none;
+		    background-color: #f1f1f1;
+		}
+		</style>
+	</head>
+	<body>
+
+	<div class="row">
+	<div class="col-md-6">
+
+		<h1>Data: <span id="datadir">None</span></h1>
+
+		<!-- Input field -->
+		<input type="text" id="myInput" placeholder="Enter text">
+
+		<!-- Button to get input value -->
+		<button onclick="generate()">Generate!</button>
+
+		<div id="Graph_Div" class="col"></div>
+	</div>
+	</div>
+
+		<script type="text/javascript">
+
+			var base_path = "data/exp_under_sparse/"
+
+var ds = document.getElementById("datadir");
+var ds2 = document.getElementById("datadir2");
+console.log(ds.innerHTML)
+
+function generate() {
+
+	// Read dropdown
+	let task = "thesis_2025"
+
+	let path =task.concat(".json") 
+
+	fetch(path)
+		.then((res)=>{
+			console.log(path);
+			if(!res.ok) {
+				throw new Error
+				('HTTP error! Status: ${res.status}');
+			}
+			return res.json();
+
+		})
+		.then((data)=>{
+
+			console.log(data);
+			data.forEach((obj, idx)=>{
+
+				vis_path = "vis/".concat(task).concat("/").concat(obj["Vis_Name"]).concat(".json")
+
+				// Load Figure Json
+				fetch(vis_path)
+					.then((res2)=>{ 
+						if(!res2.ok) {
+							throw new Error
+							('HTTP error! Status: ${res2.status}');
+						}
+						return res2.json();
+					})
+					.then((vis)=>{
+						// Create Div
+						let div = document.createElement("div")
+						div.id = "div".concat(idx)	
+			
+						let currentDiv = document.getElementById("Graph_Div");
+						currentDiv.appendChild(div);
+
+						// Assemble Path
+						let data_path="data/".concat(obj["Exp_Name"]).concat("/summaries/").concat(obj["Sum_Name"])
+
+						fetchJSONData(data_path, ["#".concat(div.id)], [vis])
+					})
+			})
+
+		});
+	
+
+}
+
+function getValue(div_num) {
+	// Get the input element by its ID
+	
+	if(div_num == 1){
+
+		let inputField = document.getElementById("myInput");
+
+		// Get the value of the input field
+		let value = inputField.value;
+
+		document.getElementById("datadir").innerHTML = value;
+
+		//loadAllGraphs("./summaries/")
+		loadAllGraphs("data/".concat(value).concat("/summaries/"), "")
+
+	}else{
+		let inputField = document.getElementById("myInput2");
+
+		// Get the value of the input field
+		let value = inputField.value;
+
+		document.getElementById("datadir2").innerHTML = value;
+
+		//loadAllGraphs("./summaries/")
+		loadAllGraphs("data/".concat(value).concat("/summaries/"), "2")
+
+	}
+}
+
+
+
+function fetchJSONData(path, divs, graphs) {
+	fetch(path)
+		.then((res) => {
+			if (!res.ok) {
+				throw new Error
+				(`HTTP error! Status: ${res.status}`);
+			}
+			return res.json();
+		})
+		.then((data) =>
+			{
+				divs.forEach((div, idx) => {
+
+					vegaEmbed(div, graphs[idx], {tooltip: {theme: 'light'}}).then(res =>
+						res.view
+						.insert('myData', data
+						).resize()
+						.run()
+					)
+				}
+				);
+
+
+
+			})
+			.catch((error) =>
+				console.error("Unable to fetch data:", error));
+}
+
+function loadAllGraphs(path, postfix){
+	
+
+	fetchJSONData(path.concat("summary_iperf.json"), ['#Throughput'.concat(postfix), '#ThroughputMM'.concat(postfix)], [Throughput, ThroughputMM])
+	fetchJSONData(path.concat("summary_iperf_lat.json"), ['#RX_Lat'.concat(postfix)], [RX_Lat_histo])
+	fetchJSONData(path.concat("summary_packet_cnt.json"), ['#Drops'.concat(postfix)], [Drops])
+	fetchJSONData(path.concat("summary_softnet.json"), ['#PpIPI'.concat(postfix), '#PpIPI_err'.concat(postfix),'#InputQData'.concat(postfix)], [PpIPI, PpIPI_err, InputQData])
+	fetchJSONData(path.concat("summary_pkt_steer.json"), ['#PktSteer'.concat(postfix), '#BC_Stats'.concat(postfix)], [PktSteer, backup_choice])
+	fetchJSONData(path.concat("summary_proc_stat.json"), ['#CPUUtil'.concat(postfix)], [CPUUtil])
+	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'.concat(postfix)], [perf_graph])
+	fetchJSONData(path.concat("summary_perf_stat.json"), ['#CacheMiss'.concat(postfix), '#IPC'.concat(postfix)], [cache_miss, ipc])
+	fetchJSONData(path.concat("summary_busy_histo.json"), ['#Busy_Histo'.concat(postfix),'#Busy_Histo_two'.concat(postfix)], [Busy_Histo, Busy_Histo2])
+	fetchJSONData(path.concat("summary_pkt_lat_histo.json"), ['#Pkt_Lat'.concat(postfix)], [Pkt_Lat_histo])
+	fetchJSONData(path.concat("summary_pkt_size_histo.json"), ['#Pkt_Size'.concat(postfix)], [pkt_size_graph])
+	fetchJSONData(path.concat("summary_netstat.json"), ['#Netstat'.concat(postfix)], [netstat])
+
+}
+var coll = document.getElementsByClassName("collapsible");
+var i;
+
+for (i = 0; i < coll.length; i++) {
+  coll[i].addEventListener("click", function() {
+      this.classList.toggle("active");
+	      var content = this.nextElementSibling;
+		      if (content.style.display === "block") {
+			        content.style.display = "none";
+					    } else {
+						      content.style.display = "block";
+							      }
+								    });
+									}
+
+		</script>
+	</body>
+</html>

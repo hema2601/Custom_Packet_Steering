@@ -1,0 +1,23 @@
+[
+{
+"Type": "IRQ",
+"cycles": 76816267609,
+"instructions": 97898128406,
+"LLC-loads": 193502537,
+"LLC-load-misses": 34856425
+},
+{
+"Type": "APP",
+"cycles": 112542451682,
+"instructions": 64496355683,
+"LLC-loads": 1113909163,
+"LLC-load-misses": 75878919
+},
+{
+"Type": "FULL",
+"cycles": 177983048294,
+"instructions": 151470772499,
+"LLC-loads": 1242435495,
+"LLC-load-misses": 104636335
+}
+]
