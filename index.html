@@ -22,6 +22,7 @@
 		<script src="web/components/busy_histo_graph.js"></script>
 		<script src="web/components/rx_lat_graph.js"></script>
 		<script src="web/components/netstat_graph.js"></script>
+		<script src="web/components/pkt_size_graph.js"></script>
 		<script src="web/components/backup_choice_graph.js"></script>
 
 		<!-- Import Vega 5 & Vega-Lite 4 (does not have to be from CDN) -->
@@ -109,6 +110,10 @@
 		<div class="content">
 			<div id="IPC" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
+		<button type="button" class="collapsible">Pkt Size Graph</button>
+		<div class="content">
+			<div id="Pkt_Size" style="overflow-x:scroll;" class="col-md-12"></div>
+		</div>
 		<button type="button" class="collapsible">Busy Histogram Graph</button>
 		<div class="content">
 			<div id="Busy_Histo" style="overflow-x:scroll;" class="col-md-12"></div>
@@ -173,6 +178,10 @@
 		<button type="button" class="collapsible">IPC Graph</button>
 		<div class="content">
 			<div id="IPC2" style="overflow-x:scroll;" class="col-md-12"></div>
+		</div>
+		<button type="button" class="collapsible">Pkt Size Graph</button>
+		<div class="content">
+			<div id="Pkt_Size2" style="overflow-x:scroll;" class="col-md-12"></div>
 		</div>
 		<button type="button" class="collapsible">Busy Histogram Graph</button>
 		<div class="content">
@@ -266,6 +275,7 @@ function loadAllGraphs(path, postfix){
 	fetchJSONData(path.concat("summary_perf.json"), ['#Perf'.concat(postfix)], [perf_graph])
 	fetchJSONData(path.concat("summary_perf_stat.json"), ['#CacheMiss'.concat(postfix), '#IPC'.concat(postfix)], [cache_miss, ipc])
 	fetchJSONData(path.concat("summary_busy_histo.json"), ['#Busy_Histo'.concat(postfix)], [Busy_Histo])
+	fetchJSONData(path.concat("summary_pkt_size_histo.json"), ['#Pkt_Size'.concat(postfix)], [pkt_size_graph])
 	fetchJSONData(path.concat("summary_netstat.json"), ['#Netstat'.concat(postfix)], [netstat])
 
 }

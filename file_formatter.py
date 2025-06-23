@@ -18,7 +18,8 @@ class Filetype(Enum):
     IPERF_LAT       = 11
     PKT_LAT_HISTO   = 12
     NETSTAT         = 13
-Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO', 'IPERF_LAT', 'PKT_LAT_HISTO', 'NETSTAT'])
+    PKT_SIZE_HISTO  = 14
+Filetype = Enum('Filetype', ['PACKET_CNT', 'SOFTIRQ', 'IRQ', 'IPERF', 'SOFTNET', 'PKT_STEER', 'PROC_STAT', 'PERF', 'PERF_STAT', 'BUSY_HISTO', 'IPERF_LAT', 'PKT_LAT_HISTO', 'NETSTAT', 'PKT_SIZE_HISTO'])
 
 
 class JsonGenerator:
@@ -799,6 +800,40 @@ class NETSTATGen(JsonGenerator):
 #                idx += 1
 #
 #            line_count += 1
+class PKT_SIZE_HISTOGen(JsonGenerator):
+
+    def generate_json(self):
+        self.f.seek(0)
+        self.f.truncate()
+        json.dump(self.json_dict, self.f, indent=0)
+
+    def read_source(self):
+        line_count = 0
+        gran = 0
+
+        for line in self.f:
+            parts = [x for x in line.split(' ') if x.strip()]
+            total = int(parts[0], 16)
+            gran = int(parts[1], 16)
+
+            idx = 0
+            for part in parts[2:]:
+                c = int(part, 16)
+                if line_count == 0:
+                    elem = dict()
+
+                    elem["start"] = idx * gran
+                    elem["end"] = (idx + 1) * gran
+                    elem["count"] = c
+                    elem["total"] = total
+                    self.json_dict.append(elem)
+                else:
+                    elem = next((item for item in self.json_dict if item["start"] == idx * gran), None)
+                    elem["count"] = c - elem["count"]
+                idx += 1
+
+            line_count += 1
+
 argc = len(sys.argv)
 
 

@@ -76,6 +76,12 @@ static struct latency_stats lat_stats;
 static const int lat_gran = 50;
 static unsigned long long lat_histo[LAT_HISTO_SIZE];
 
+DEFINE_SPINLOCK(pkt_lock);
+#define PKT_HISTO_SIZE 13
+static const int pkt_gran = 5000;
+static unsigned long long pkt_histo[PKT_HISTO_SIZE];
+static unsigned long long pkt_cnt;
+
 static int num_curr_cpus = 1;
 
 static int curr_busy = 0;
@@ -155,6 +161,10 @@ MODULE_PARM_DESC(deactivate_util_lb, "Deactivates the adding and reducing of ava
 static int check_backup_choice __read_mostly = 0;
 module_param(check_backup_choice, int, 0644);
 MODULE_PARM_DESC(check_backup_choice, "When turned on, every core chosen as backup will be checked on whether they are busy, overloaded, or idle");
+
+static int pkt_histo_measures __read_mostly = 0;
+module_param(pkt_histo_measures, int, 0644);
+MODULE_PARM_DESC(pkt_histo_measures, "When turned on, count steered packets and create a histogram based on their sizes");
 
 static int latency_measures __read_mostly = 0;
 
@@ -781,6 +791,22 @@ static int interface_get_rps_cpu(struct net_device *dev, struct sk_buff *skb,
 
 	int ret;
 	ktime_t lat;
+	unsigned long size;
+	int idx;
+
+	if(pkt_histo_measures){
+		if (skb->len > 300)	size = skb->data_len;
+		else				size = skb->len;
+
+		idx = size / pkt_gran;
+
+		spin_lock(&pkt_lock);
+		pkt_histo[(idx < PKT_HISTO_SIZE)?idx:PKT_HISTO_SIZE-1]++;
+		if (idx == 0 && size < 500)	pkt_histo[idx]--;	
+		pkt_cnt++;
+		spin_unlock(&pkt_lock);
+
+	}
 
 	if(latency_measures)
 		lat = ktime_get();
@@ -829,6 +855,12 @@ static int my_proc_show(struct seq_file *m,void *v){
 	seq_printf(m, "%08x ", lat_gran);
 
 	for(i = 0; i < LAT_HISTO_SIZE; i++)	seq_printf(m, "%08llx ", lat_histo[i]);
+
+	seq_printf(m, "\n");
+	
+	seq_printf(m, "%08llx %08x ", pkt_cnt, pkt_gran);
+
+	for(i = 0; i < PKT_HISTO_SIZE; i++)	seq_printf(m, "%08llx ", pkt_histo[i]);
 
 	seq_printf(m, "\n");
 	
