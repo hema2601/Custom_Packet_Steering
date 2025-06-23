@@ -11,7 +11,7 @@ if len(sys.argv) > 4:
 else:
     base_dir = "."
 #bases = ["RSS", "RPS", "RFS", "Custom"]
-bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "Custom1", "Custom2", "Custom3", "RSS+Custom", "RSS+Custom1", "RSS+Custom2", "RSS+Custom3", "Custom1-0", "Custom1-1", "Custom1-2", "Custom1-3", "Custom2-0", "Custom2-1", "Custom2-2", "Custom2-3", "IAPS+RFS", "IAPS+RPS", "IAPS+LB"]
+bases = ["RSS", "RPS", "RFS", "RSS+RPS", "RSS+RFS", "Custom", "Custom1", "Custom2", "Custom3", "RSS+Custom", "RSS+Custom1", "RSS+Custom2", "RSS+Custom3", "Custom1-0", "Custom1-1", "Custom1-2", "Custom1-3", "Custom2-0", "Custom2-1", "Custom2-2", "Custom2-3", "IAPS+RFS", "IAPS+RPS", "IAPS+LB", "IAPS-Base", "IAPS-Basic-Overload", "IAPS-Full-Overload", "IAPS-Idle-Core", "IAPS-Basic-Overload-20", "IAPS-Full-Overload-20", "IAPS-Idle-Core-20", "IAPS-Basic-Overload-10", "IAPS-Full-Overload-10", "IAPS-Idle-Core-10", "IAPS-Basic-Overload-30", "IAPS-Full-Overload-30", "IAPS-Idle-Core-30", "IAPS-Basic-Overload-40", "IAPS-Full-Overload-40", "IAPS-Idle-Core-40", "IAPS-Basic-Overload-50", "IAPS-Full-Overload-50", "IAPS-Idle-Core-50", "IAPS-Basic-Overload-5", "IAPS-Full-Overload-5", "IAPS-Idle-Core-5", "IAPS-Basic-Overload-15", "IAPS-Full-Overload-15", "IAPS-Idle-Core-15", "IAPS-Basic-Overload-25", "IAPS-Full-Overload-25", "IAPS-Idle-Core-25", "IAPS-Full-Overload-60", "IAPS-Full-Overload-80", "IAPS-Full-Overload-100", "IAPS-Full-Overload-35", "IAPS-Full-Overload-45", "IAPS-Full-Overload-50", "IAPS-Full-Overload-55"]
 directory = []
 
 exp = 1
